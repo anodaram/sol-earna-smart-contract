@@ -15,6 +15,55 @@ use crate::*;
 use states::*;
 use constants::*;
 
+
+#[derive(Accounts)]
+pub struct InitializeExtraAccountMetaList<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    /// CHECK: ExtraAccountMetaList Account, must use these seeds
+    #[account(
+        mut,
+        seeds = [EXTRA_ACCOUNT_METAS_TAG, mint.key().as_ref()], 
+        bump
+    )]
+    pub extra_account_meta_list: AccountInfo<'info>,
+    pub mint: InterfaceAccount<'info, Mint>,
+    pub token_program: Interface<'info, TokenInterface>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+
+    #[account(
+        init_if_needed,
+        seeds = [FEE_CONFIG_TAG],//, mint.key().as_ref()],
+        bump,
+        payer = payer,
+        space = std::mem::size_of::<FeeConfig>() + 8
+    )]
+    pub fee_config: Account<'info, FeeConfig>,
+
+    #[account(
+        mut,
+        token::mint = mint,
+        // token::authority = payer, // no need to check authority
+    )]
+    pub marketing_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+        mut,
+        token::mint = mint,
+        // token::authority = payer, // no need to check authority
+    )]
+    pub liquidity_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+        mut,
+        token::mint = mint,
+        // token::authority = payer, // no need to check authority
+    )]
+    pub holders_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+}
+
 // Order of accounts matters for this struct.
 // The first 4 accounts are the accounts required for token transfer (source, mint, destination, owner)
 // Remaining accounts are the extra accounts required from the ExtraAccountMetaList account
@@ -39,6 +88,12 @@ pub struct TransferHook<'info> {
         bump
     )]
     pub extra_account_meta_list: UncheckedAccount<'info>,
+
+    #[account(
+        seeds = [FEE_CONFIG_TAG],//, mint.key().as_ref()],
+        bump
+    )]
+    pub fee_config: Account<'info, FeeConfig>,
 }
 
 #[derive(Accounts)]

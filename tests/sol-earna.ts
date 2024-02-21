@@ -32,6 +32,8 @@ import {
 } from "@solana/spl-token";
 import assert from "assert";
 
+import { EXTRA_ACCOUNT_METAS_TAG, FEE_CONFIG_TAG, FEE_RECIPIENT_HOLDERS_TAG } from "./constants";
+
 describe("sol-earna", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
@@ -45,30 +47,55 @@ describe("sol-earna", () => {
   const mint = new Keypair();
   const decimals = 9;
 
-  // Sender token account address
-  const sourceTokenAccount = getAssociatedTokenAddressSync(
-    mint.publicKey,
-    wallet.publicKey,
-    false,
-    TOKEN_2022_PROGRAM_ID,
-    ASSOCIATED_TOKEN_PROGRAM_ID
-  );
+  const feeRecipientLiquidity = Keypair.generate();
+  const feeRecipientMarketing = Keypair.generate();
 
-  // Recipient token account address
-  const recipient = Keypair.generate();
-  const destinationTokenAccount = getAssociatedTokenAddressSync(
-    mint.publicKey,
-    recipient.publicKey,
-    false,
-    TOKEN_2022_PROGRAM_ID,
-    ASSOCIATED_TOKEN_PROGRAM_ID
-  );
+  // console.log(feeRecipientLiquidity.secretKey);
+  // console.log(feeRecipientMarketing.secretKey);
+
+  const FEE_PERCENT_HOLDERS = 500; // 5%
+  const FEE_PERCENT_MARKETING = 400; // 4%
+  const FEE_PERCENT_LIQUIDITY = 100; // 1%
 
   // ExtraAccountMetaList address
   // Store extra accounts required by the custom transfer hook instruction
   const [extraAccountMetaListPDA] = PublicKey.findProgramAddressSync(
-    [Buffer.from("extra-account-metas"), mint.publicKey.toBuffer()],
+    [EXTRA_ACCOUNT_METAS_TAG, mint.publicKey.toBuffer()],
     program.programId
+  );
+
+  const [feeConfigPDA] = PublicKey.findProgramAddressSync(
+    [FEE_CONFIG_TAG],//, mint.publicKey.toBuffer()],
+    program.programId
+  );
+
+  const [feeRecipientHoldersPDA] = PublicKey.findProgramAddressSync(
+    [FEE_RECIPIENT_HOLDERS_TAG, mint.publicKey.toBuffer(), wallet.payer.publicKey.toBuffer()],
+    program.programId
+  );
+
+  const liquidityTokenAccount = getAssociatedTokenAddressSync(
+    mint.publicKey,
+    feeRecipientLiquidity.publicKey,
+    false,
+    TOKEN_2022_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+
+  const marketingTokenAccount = getAssociatedTokenAddressSync(
+    mint.publicKey,
+    feeRecipientMarketing.publicKey,
+    false,
+    TOKEN_2022_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+
+  const holdersTokenAccount = getAssociatedTokenAddressSync(
+    mint.publicKey,
+    feeRecipientHoldersPDA,
+    true,
+    TOKEN_2022_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
   );
 
   it("Create Mint Account with Transfer Hook Extension", async () => {
@@ -107,6 +134,101 @@ describe("sol-earna", () => {
     );
     console.log(`Transaction Signature: ${txSig}`);
   });
+
+  it("Prepare Fee Recipient Accounts", async () => {
+    const transaction = new Transaction().add(
+      createAssociatedTokenAccountInstruction(
+        wallet.publicKey,
+        liquidityTokenAccount,
+        feeRecipientLiquidity.publicKey,
+        mint.publicKey,
+        TOKEN_2022_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      ),
+      createAssociatedTokenAccountInstruction(
+        wallet.publicKey,
+        marketingTokenAccount,
+        feeRecipientMarketing.publicKey,
+        mint.publicKey,
+        TOKEN_2022_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      ),
+      createAssociatedTokenAccountInstruction(
+        wallet.publicKey,
+        holdersTokenAccount,
+        feeRecipientHoldersPDA,
+        mint.publicKey,
+        TOKEN_2022_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      )
+    );
+
+    const txSig = await sendAndConfirmTransaction(
+      connection,
+      transaction,
+      [wallet.payer],
+      { skipPreflight: true }
+    );
+
+    console.log(`Transaction Signature: ${txSig}`);
+  });
+
+  // Account to store extra accounts required by the transfer hook instruction
+  it("Create ExtraAccountMetaList Account", async () => {
+    const extraAccountMetasInfo = await connection.getAccountInfo(extraAccountMetaListPDA);
+    
+    console.log("Extra accounts meta: " + extraAccountMetasInfo);
+
+    // if (extraAccountMetasInfo === null) {
+    const initializeExtraAccountMetaListInstruction = await program.methods
+      .initializeExtraAccountMetaList(
+        FEE_PERCENT_HOLDERS,
+        FEE_PERCENT_MARKETING,
+        FEE_PERCENT_LIQUIDITY
+      )
+      .accounts(
+        {
+          extraAccountMetaList: extraAccountMetaListPDA,
+          mint: mint.publicKey,
+          feeConfig: feeConfigPDA,
+          liquidityTokenAccount,
+          marketingTokenAccount,
+          holdersTokenAccount
+        }
+      )
+      .instruction();
+
+    const transaction = new Transaction().add(
+      initializeExtraAccountMetaListInstruction
+    );
+
+    const txSig = await sendAndConfirmTransaction(
+      provider.connection,
+      transaction,
+      [wallet.payer],
+      { skipPreflight: true, commitment: "confirmed" }
+    );
+    console.log("Transaction Signature:", txSig);
+  });
+
+  // Sender token account address
+  const sourceTokenAccount = getAssociatedTokenAddressSync(
+    mint.publicKey,
+    wallet.publicKey,
+    false,
+    TOKEN_2022_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+
+  // Recipient token account address
+  const recipient = Keypair.generate();
+  const destinationTokenAccount = getAssociatedTokenAddressSync(
+    mint.publicKey,
+    recipient.publicKey,
+    false,
+    TOKEN_2022_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
 
   // Create the two token accounts for the transfer-hook enabled mint
   // Fund the sender token account with 100 tokens
@@ -151,29 +273,6 @@ describe("sol-earna", () => {
     console.log(`Transaction Signature: ${txSig}`);
   });
 
-  // Account to store extra accounts required by the transfer hook instruction
-  it("Create ExtraAccountMetaList Account", async () => {
-    const initializeExtraAccountMetaListInstruction = await program.methods
-      .initializeExtraAccountMetaList()
-      .accounts({
-        mint: mint.publicKey,
-        extraAccountMetaList: extraAccountMetaListPDA,
-      })
-      .instruction();
-
-    const transaction = new Transaction().add(
-      initializeExtraAccountMetaListInstruction
-    );
-
-    const txSig = await sendAndConfirmTransaction(
-      provider.connection,
-      transaction,
-      [wallet.payer],
-      { skipPreflight: true, commitment: "confirmed" }
-    );
-    console.log("Transaction Signature:", txSig);
-  });
-
   it("Transfer Hook with Extra Account Meta", async () => {
     // 1 tokens
     const amount = 1 * 10 ** decimals;
@@ -190,7 +289,7 @@ describe("sol-earna", () => {
       decimals,
       [],
       "confirmed",
-      TOKEN_2022_PROGRAM_ID
+      TOKEN_2022_PROGRAM_ID,
     );
 
     const transaction = new Transaction().add(

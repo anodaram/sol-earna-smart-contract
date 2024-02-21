@@ -32,11 +32,23 @@ pub mod sol_earna {
 
     pub fn initialize_extra_account_meta_list(
         ctx: Context<InitializeExtraAccountMetaList>,
+        fee_percent_holders: u16,
+        fee_percent_marketing: u16,
+        fee_percent_liqudity: u16,
     ) -> Result<()> {
+        let mut fee_config_key: Vec<u8> = Vec::new();
+        fee_config_key.extend_from_slice(FEE_CONFIG_TAG);
+        fee_config_key.extend_from_slice(ctx.accounts.mint.key().as_ref());
 
         // The `addExtraAccountsToInstruction` JS helper function resolving incorrectly
         let account_metas = vec![
-            
+            ExtraAccountMeta::new_with_seeds(
+                &[Seed::Literal {
+                    bytes: "fee-config".as_bytes().to_vec(),
+                }],
+                false, // is_signer
+                true,  // is_writable
+            )?,
         ];
 
         // calculate account size
@@ -72,13 +84,34 @@ pub mod sol_earna {
             &account_metas,
         )?;
 
+        ctx.accounts.fee_config.fee_percent_holders = fee_percent_holders;
+        ctx.accounts.fee_config.fee_percent_marketing = fee_percent_marketing;
+        ctx.accounts.fee_config.fee_percent_liqudity = fee_percent_liqudity;
+        ctx.accounts.fee_config.marketing_token_account = ctx.accounts.marketing_token_account.key();
+        ctx.accounts.fee_config.liquidity_token_account = ctx.accounts.liquidity_token_account.key();
+        ctx.accounts.fee_config.holders_token_account = ctx.accounts.holders_token_account.key();
+
         Ok(())
     }
 
     pub fn transfer_hook(ctx: Context<TransferHook>, amount: u64) -> Result<()> {
+        // let fee_config = ctx.accounts.extra_account_meta_list;
 
         msg!("Hello Transfer Hook!");
 
+        // let fee_free: bool = false;
+        // if ctx.accounts.source_token.key() == ctx.accounts.fee_config.marketing_token_account || ctx.accounts.destination_token.key() == ctx.accounts.fee_config.marketing_token_account {
+            
+        // }
+
+        // transfer_checked(
+        //     CpiContext::new
+        // )
+
+        Ok(())
+    }
+
+    pub fn claim_reward(ctx: Context<ClaimReward>) -> Result<()> {
         Ok(())
     }
 
@@ -104,31 +137,3 @@ pub mod sol_earna {
     }
 }
 
-
-// TODO: need to move this struct to context.rs, the problem is to access to payer(Signer) from outside
-#[derive(Accounts)]
-pub struct InitializeExtraAccountMetaList<'info> {
-    #[account(mut)]
-    payer: Signer<'info>,
-
-    /// CHECK: ExtraAccountMetaList Account, must use these seeds
-    #[account(
-        mut,
-        seeds = [EXTRA_ACCOUNT_METAS_TAG, mint.key().as_ref()], 
-        bump
-    )]
-    pub extra_account_meta_list: AccountInfo<'info>,
-    pub mint: InterfaceAccount<'info, Mint>,
-    pub token_program: Interface<'info, TokenInterface>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub system_program: Program<'info, System>,
-
-    #[account(
-        init,
-        seeds = [FEE_CONFIG_TAG, mint.key().as_ref(), payer.key().as_ref()],
-        payer = payer,
-        bump,
-        space = std::mem::size_of::<FeeConfig>() + 8
-    )]
-    pub FeeConfig: Account<'info, FeeConfig>,
-}
