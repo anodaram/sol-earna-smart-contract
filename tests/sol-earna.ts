@@ -14,6 +14,7 @@ import {
   getMintLen,
   createInitializeMintInstruction,
   createInitializeTransferHookInstruction,
+  createInitializeTransferFeeConfigInstruction,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
   createMintToInstruction,
@@ -56,6 +57,7 @@ describe("sol-earna", () => {
   const FEE_PERCENT_HOLDERS = 500; // 5%
   const FEE_PERCENT_MARKETING = 400; // 4%
   const FEE_PERCENT_LIQUIDITY = 100; // 1%
+  const TOTAL_FEE_PERCENT = FEE_PERCENT_HOLDERS + FEE_PERCENT_MARKETING + FEE_PERCENT_LIQUIDITY;
 
   // ExtraAccountMetaList address
   // Store extra accounts required by the custom transfer hook instruction
@@ -65,7 +67,7 @@ describe("sol-earna", () => {
   );
 
   const [feeConfigPDA] = PublicKey.findProgramAddressSync(
-    [FEE_CONFIG_TAG],//, mint.publicKey.toBuffer()],
+    [FEE_CONFIG_TAG, mint.publicKey.toBuffer()],
     program.programId
   );
 
@@ -99,7 +101,7 @@ describe("sol-earna", () => {
   );
 
   it("Create Mint Account with Transfer Hook Extension", async () => {
-    const extensions = [ExtensionType.TransferHook];
+    const extensions = [ExtensionType.TransferFeeConfig, ExtensionType.TransferHook];
     const mintLen = getMintLen(extensions);
     const lamports =
       await provider.connection.getMinimumBalanceForRentExemption(mintLen);
@@ -118,6 +120,14 @@ describe("sol-earna", () => {
         program.programId, // Transfer Hook Program ID
         TOKEN_2022_PROGRAM_ID
       ),
+      createInitializeTransferFeeConfigInstruction(
+        mint.publicKey,
+        wallet.publicKey,
+        feeRecipientHoldersPDA,
+        TOTAL_FEE_PERCENT,
+        BigInt(1_000_000_000),
+        TOKEN_2022_PROGRAM_ID
+      ),
       createInitializeMintInstruction(
         mint.publicKey,
         decimals,
@@ -130,7 +140,8 @@ describe("sol-earna", () => {
     const txSig = await sendAndConfirmTransaction(
       provider.connection,
       transaction,
-      [wallet.payer, mint]
+      [wallet.payer, mint],
+      undefined
     );
     console.log(`Transaction Signature: ${txSig}`);
   });
@@ -176,7 +187,7 @@ describe("sol-earna", () => {
   // Account to store extra accounts required by the transfer hook instruction
   it("Create ExtraAccountMetaList Account", async () => {
     const extraAccountMetasInfo = await connection.getAccountInfo(extraAccountMetaListPDA);
-    
+
     console.log("Extra accounts meta: " + extraAccountMetasInfo);
 
     // if (extraAccountMetasInfo === null) {
@@ -190,6 +201,8 @@ describe("sol-earna", () => {
         {
           extraAccountMetaList: extraAccountMetaListPDA,
           mint: mint.publicKey,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           feeConfig: feeConfigPDA,
           liquidityTokenAccount,
           marketingTokenAccount,
@@ -277,6 +290,12 @@ describe("sol-earna", () => {
     // 1 tokens
     const amount = 1 * 10 ** decimals;
     const bigIntAmount = BigInt(amount);
+    const balanceSourceBefore = (await getAccount(connection, sourceTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    const balanceDestinationBefore = (await getAccount(connection, destinationTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    const balanceHoldersBefore = (await getAccount(connection, holdersTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    const balanceMarketingBefore = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    const balanceLiquidityBefore = (await getAccount(connection, liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    console.log({ balanceSourceBefore, balanceDestinationBefore, balanceHoldersBefore, balanceMarketingBefore, balanceLiquidityBefore });
 
     // Standard token transfer instruction
     const transferInstruction = await createTransferCheckedWithTransferHookInstruction(
@@ -303,5 +322,13 @@ describe("sol-earna", () => {
       { skipPreflight: true }
     );
     console.log("Transfer Signature:", txSig);
+
+
+    const balanceSourceAfter = (await getAccount(connection, sourceTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    const balanceDestinationAfter = (await getAccount(connection, destinationTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    const balanceHoldersAfter = (await getAccount(connection, holdersTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    const balanceMarketingAfter = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    const balanceLiquidityAfter = (await getAccount(connection, liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    console.log({ balanceSourceAfter, balanceDestinationAfter, balanceHoldersAfter, balanceMarketingAfter, balanceLiquidityAfter });
   });
 });

@@ -35,7 +35,7 @@ pub struct InitializeExtraAccountMetaList<'info> {
 
     #[account(
         init_if_needed,
-        seeds = [FEE_CONFIG_TAG],//, mint.key().as_ref()],
+        seeds = [FEE_CONFIG_TAG, mint.key().as_ref()],
         bump,
         payer = payer,
         space = std::mem::size_of::<FeeConfig>() + 8
@@ -88,12 +88,29 @@ pub struct TransferHook<'info> {
         bump
     )]
     pub extra_account_meta_list: UncheckedAccount<'info>,
+    pub token_program: Interface<'info, TokenInterface>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
 
     #[account(
-        seeds = [FEE_CONFIG_TAG],//, mint.key().as_ref()],
+        seeds = [FEE_CONFIG_TAG, mint.key().as_ref()],
         bump
     )]
     pub fee_config: Account<'info, FeeConfig>,
+
+    #[account(
+        token::mint = mint,
+    )]
+    pub marketing_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+        token::mint = mint,
+    )]
+    pub liquidity_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+        token::mint = mint,
+    )]
+    pub holders_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 }
 
 #[derive(Accounts)]

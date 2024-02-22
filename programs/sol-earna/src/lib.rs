@@ -4,30 +4,33 @@ use anchor_lang::{
 };
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked},
+    token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked, Transfer},
 };
 use spl_tlv_account_resolution::{
     account::ExtraAccountMeta, seeds::Seed, state::ExtraAccountMetaList,
 };
 use spl_transfer_hook_interface::instruction::{ExecuteInstruction, TransferHookInstruction};
+use anchor_spl::token_interface::{accessor::mint, spl_token_2022::extension::transfer_fee::instruction::{transfer_checked_with_fee, withdraw_withheld_tokens_from_accounts}};
 
 declare_id!("xnwVapsgETFh2cz8LFPfTyneACVaMtxbR7D7KeFH3K8");
 
-mod processors;
+pub mod constants;
+pub mod contexts;
 pub mod errors;
 pub mod events;
+mod processors;
 pub mod states;
 pub mod utils;
-pub mod contexts;
-pub mod constants;
 
-pub use contexts::*;
-pub use utils::*;
-use states::*;
 use constants::*;
+pub use contexts::*;
+use states::*;
+pub use utils::*;
 
 #[program]
 pub mod sol_earna {
+    
+
     use super::*;
 
     pub fn initialize_extra_account_meta_list(
@@ -36,19 +39,22 @@ pub mod sol_earna {
         fee_percent_marketing: u16,
         fee_percent_liqudity: u16,
     ) -> Result<()> {
-        let mut fee_config_key: Vec<u8> = Vec::new();
-        fee_config_key.extend_from_slice(FEE_CONFIG_TAG);
-        fee_config_key.extend_from_slice(ctx.accounts.mint.key().as_ref());
-
         // The `addExtraAccountsToInstruction` JS helper function resolving incorrectly
         let account_metas = vec![
-            ExtraAccountMeta::new_with_seeds(
-                &[Seed::Literal {
-                    bytes: "fee-config".as_bytes().to_vec(),
-                }],
+            ExtraAccountMeta::new_with_pubkey(&ctx.accounts.token_program.key(), false, false)?,
+            ExtraAccountMeta::new_with_pubkey(
+                &ctx.accounts.associated_token_program.key(),
+                false,
+                false,
+            )?,
+            ExtraAccountMeta::new_with_pubkey(
+                &ctx.accounts.fee_config.key(),
                 false, // is_signer
                 true,  // is_writable
             )?,
+            ExtraAccountMeta::new_with_pubkey(&ctx.accounts.marketing_token_account.key(), false, false)?,
+            ExtraAccountMeta::new_with_pubkey(&ctx.accounts.liquidity_token_account.key(), false, false)?,
+            ExtraAccountMeta::new_with_pubkey(&ctx.accounts.holders_token_account.key(), false, false)?,
         ];
 
         // calculate account size
@@ -87,8 +93,10 @@ pub mod sol_earna {
         ctx.accounts.fee_config.fee_percent_holders = fee_percent_holders;
         ctx.accounts.fee_config.fee_percent_marketing = fee_percent_marketing;
         ctx.accounts.fee_config.fee_percent_liqudity = fee_percent_liqudity;
-        ctx.accounts.fee_config.marketing_token_account = ctx.accounts.marketing_token_account.key();
-        ctx.accounts.fee_config.liquidity_token_account = ctx.accounts.liquidity_token_account.key();
+        ctx.accounts.fee_config.marketing_token_account =
+            ctx.accounts.marketing_token_account.key();
+        ctx.accounts.fee_config.liquidity_token_account =
+            ctx.accounts.liquidity_token_account.key();
         ctx.accounts.fee_config.holders_token_account = ctx.accounts.holders_token_account.key();
 
         Ok(())
@@ -99,14 +107,45 @@ pub mod sol_earna {
 
         msg!("Hello Transfer Hook!");
 
-        // let fee_free: bool = false;
-        // if ctx.accounts.source_token.key() == ctx.accounts.fee_config.marketing_token_account || ctx.accounts.destination_token.key() == ctx.accounts.fee_config.marketing_token_account {
-            
-        // }
 
-        // transfer_checked(
-        //     CpiContext::new
-        // )
+        let source_token = ctx.accounts.source_token.key();
+        let destination_token = ctx.accounts.destination_token.key();
+        let fee_config = &ctx.accounts.fee_config;
+
+        let mut fee_free: bool = false;
+        if source_token == fee_config.marketing_token_account
+            || destination_token == fee_config.marketing_token_account
+        {
+            fee_free = true;
+        } else if source_token == fee_config.liquidity_token_account
+            || destination_token == fee_config.liquidity_token_account
+        {
+            fee_free = true;
+        } else if source_token == fee_config.holders_token_account
+            || destination_token == fee_config.holders_token_account
+        {
+            fee_free = true;
+        }
+
+        if !fee_free {
+            let liquidity_fee: u64 = amount * fee_config.fee_percent_liqudity as u64 / 10000;
+            let marketing_fee: u64 = amount * fee_config.fee_percent_marketing as u64 / 10000;
+            let holders_fee: u64 = amount * fee_config.fee_percent_holders as u64 / 10000;
+            if liquidity_fee > 0 {
+                withdraw_withheld_tokens_from_accounts(
+                    &ctx.accounts.token_program.to_account_info().key(),// token_program_id: 
+                    &ctx.accounts.mint.to_account_info().key(),// mint: &Pubkey,
+                    &ctx.accounts.liquidity_token_account.to_account_info().key(),// destination: &Pubkey,
+                    &ctx.accounts.owner.to_account_info().key(),// authority: &Pubkey,
+                    &[],// signers: &[&Pubkey],
+                    &[]// sources: &[&Pubkey],
+                );
+            }
+            if marketing_fee > 0 {
+            }
+            if holders_fee > 0 {
+            }
+        }
 
         Ok(())
     }
@@ -123,7 +162,7 @@ pub mod sol_earna {
     ) -> Result<()> {
         let instruction = TransferHookInstruction::unpack(data)?;
 
-        // match instruction discriminator to transfer hook interface execute instruction  
+        // match instruction discriminator to transfer hook interface execute instruction
         // token2022 program CPIs this instruction on token transfer
         match instruction {
             TransferHookInstruction::Execute { amount } => {
@@ -136,4 +175,3 @@ pub mod sol_earna {
         }
     }
 }
-
