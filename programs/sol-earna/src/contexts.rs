@@ -62,6 +62,13 @@ pub struct InitializeExtraAccountMetaList<'info> {
         // token::authority = payer, // no need to check authority
     )]
     pub holders_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    // #[account(
+    //     mut,
+    //     seeds = [FEE_RECIPIENT_HOLDERS_TAG, mint.key().as_ref(), payer.key().as_ref()],
+    //     bump
+    // )]
+    // pub fee_recipient_liquidity: SystemAccount<'info>,
 }
 
 // Order of accounts matters for this struct.
@@ -98,19 +105,29 @@ pub struct TransferHook<'info> {
     pub fee_config: Account<'info, FeeConfig>,
 
     #[account(
+        mut,
         token::mint = mint,
     )]
     pub marketing_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
+        mut,
         token::mint = mint,
     )]
     pub liquidity_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
+        mut,
         token::mint = mint,
     )]
     pub holders_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+        mut,
+        seeds = [FEE_RECIPIENT_HOLDERS_TAG],
+        bump
+    )]
+    pub fee_recipient_liquidity: SystemAccount<'info>,
 }
 
 #[derive(Accounts)]

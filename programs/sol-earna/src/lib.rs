@@ -2,15 +2,22 @@ use anchor_lang::{
     prelude::*,
     system_program::{create_account, CreateAccount},
 };
+use anchor_spl::token_interface::{
+    accessor::mint,
+    spl_token_2022::extension::transfer_fee::instruction::{
+        transfer_checked_with_fee, withdraw_withheld_tokens_from_accounts
+    },
+};
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked, Transfer},
+    token_interface::{
+        transfer_checked, Mint, TokenAccount, TokenInterface, Transfer, TransferChecked,
+    },
 };
 use spl_tlv_account_resolution::{
     account::ExtraAccountMeta, seeds::Seed, state::ExtraAccountMetaList,
 };
 use spl_transfer_hook_interface::instruction::{ExecuteInstruction, TransferHookInstruction};
-use anchor_spl::token_interface::{accessor::mint, spl_token_2022::extension::transfer_fee::instruction::{transfer_checked_with_fee, withdraw_withheld_tokens_from_accounts}};
 
 declare_id!("xnwVapsgETFh2cz8LFPfTyneACVaMtxbR7D7KeFH3K8");
 
@@ -29,7 +36,6 @@ pub use utils::*;
 
 #[program]
 pub mod sol_earna {
-    
 
     use super::*;
 
@@ -52,9 +58,28 @@ pub mod sol_earna {
                 false, // is_signer
                 true,  // is_writable
             )?,
-            ExtraAccountMeta::new_with_pubkey(&ctx.accounts.marketing_token_account.key(), false, false)?,
-            ExtraAccountMeta::new_with_pubkey(&ctx.accounts.liquidity_token_account.key(), false, false)?,
-            ExtraAccountMeta::new_with_pubkey(&ctx.accounts.holders_token_account.key(), false, false)?,
+            ExtraAccountMeta::new_with_pubkey(
+                &ctx.accounts.marketing_token_account.key(),
+                false,
+                true,
+            )?,
+            ExtraAccountMeta::new_with_pubkey(
+                &ctx.accounts.liquidity_token_account.key(),
+                false,
+                true,
+            )?,
+            ExtraAccountMeta::new_with_pubkey(
+                &ctx.accounts.holders_token_account.key(),
+                false,
+                true,
+            )?,
+            ExtraAccountMeta::new_with_seeds(
+                &[Seed::Literal {
+                    bytes: "fee-recipient-holders".as_bytes().to_vec(),
+                }],
+                false,
+                true,
+            )?,
         ];
 
         // calculate account size
@@ -107,7 +132,6 @@ pub mod sol_earna {
 
         msg!("Hello Transfer Hook!");
 
-
         let source_token = ctx.accounts.source_token.key();
         let destination_token = ctx.accounts.destination_token.key();
         let fee_config = &ctx.accounts.fee_config;
@@ -128,23 +152,48 @@ pub mod sol_earna {
         }
 
         if !fee_free {
+            let signer_seeds: &[&[&[u8]]] = &[&[
+                FEE_RECIPIENT_HOLDERS_TAG,
+                &[ctx.bumps.fee_recipient_liquidity],
+            ]];
+            
+            let holders_fee: u64 = amount * fee_config.fee_percent_holders as u64 / 10000;
             let liquidity_fee: u64 = amount * fee_config.fee_percent_liqudity as u64 / 10000;
             let marketing_fee: u64 = amount * fee_config.fee_percent_marketing as u64 / 10000;
-            let holders_fee: u64 = amount * fee_config.fee_percent_holders as u64 / 10000;
+            // TODO: need to check about the dust fee
+            msg!("{:?} {:?} {:?}", liquidity_fee, marketing_fee, holders_fee);
             if liquidity_fee > 0 {
-                withdraw_withheld_tokens_from_accounts(
-                    &ctx.accounts.token_program.to_account_info().key(),// token_program_id: 
-                    &ctx.accounts.mint.to_account_info().key(),// mint: &Pubkey,
-                    &ctx.accounts.liquidity_token_account.to_account_info().key(),// destination: &Pubkey,
-                    &ctx.accounts.owner.to_account_info().key(),// authority: &Pubkey,
-                    &[],// signers: &[&Pubkey],
-                    &[]// sources: &[&Pubkey],
+                msg!("{:?} {:?} {:?} {:?} {:?}",
+                    ctx.accounts.token_program.to_account_info().key(),
+                    ctx.accounts.token_program.to_account_info().key(),
+                    ctx.accounts.mint.to_account_info().key(),
+                    ctx.accounts.fee_recipient_liquidity.to_account_info().key(),
+                    ctx.accounts.owner.to_account_info().key(),
                 );
+                
+                let ix = withdraw_withheld_tokens_from_accounts(
+                    &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
+                    &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
+                    &ctx.accounts.fee_recipient_liquidity.to_account_info().key(), // destination: &Pubkey,
+                    &ctx.accounts.fee_recipient_liquidity.to_account_info().key(), // authority: &Pubkey,
+                    &[&ctx.accounts.fee_recipient_liquidity.to_account_info().key()], // signers: &[&Pubkey],
+                    &[], // sources: &[&Pubkey],
+                )?;
+
+                solana_program::program::invoke_signed(
+                    &ix,
+                    &[
+                        ctx.accounts.token_program.to_account_info(),
+                        ctx.accounts.mint.to_account_info(),
+                        ctx.accounts.liquidity_token_account.to_account_info(),
+                        ctx.accounts.fee_recipient_liquidity.to_account_info(),
+                        // ctx.accounts.owner.to_account_info(),
+                    ],
+                    signer_seeds,
+                )?;
             }
-            if marketing_fee > 0 {
-            }
-            if holders_fee > 0 {
-            }
+            if marketing_fee > 0 {}
+            if holders_fee > 0 {}
         }
 
         Ok(())

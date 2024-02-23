@@ -72,7 +72,7 @@ describe("sol-earna", () => {
   );
 
   const [feeRecipientHoldersPDA] = PublicKey.findProgramAddressSync(
-    [FEE_RECIPIENT_HOLDERS_TAG, mint.publicKey.toBuffer(), wallet.payer.publicKey.toBuffer()],
+    [FEE_RECIPIENT_HOLDERS_TAG],
     program.programId
   );
 
@@ -201,12 +201,13 @@ describe("sol-earna", () => {
         {
           extraAccountMetaList: extraAccountMetaListPDA,
           mint: mint.publicKey,
-          tokenProgram: TOKEN_PROGRAM_ID,
+          tokenProgram: TOKEN_2022_PROGRAM_ID, // originally TOKEN_PROGRAM_ID
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           feeConfig: feeConfigPDA,
           liquidityTokenAccount,
           marketingTokenAccount,
-          holdersTokenAccount
+          holdersTokenAccount,
+          // feeRecipientLiquidity: feeRecipientLiquidity.publicKey,
         }
       )
       .instruction();
@@ -289,6 +290,52 @@ describe("sol-earna", () => {
   it("Transfer Hook with Extra Account Meta", async () => {
     // 1 tokens
     const amount = 1 * 10 ** decimals;
+    const bigIntAmount = BigInt(amount);
+    const balanceSourceBefore = (await getAccount(connection, sourceTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    const balanceDestinationBefore = (await getAccount(connection, destinationTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    const balanceHoldersBefore = (await getAccount(connection, holdersTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    const balanceMarketingBefore = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    const balanceLiquidityBefore = (await getAccount(connection, liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    console.log({ balanceSourceBefore, balanceDestinationBefore, balanceHoldersBefore, balanceMarketingBefore, balanceLiquidityBefore });
+
+    // Standard token transfer instruction
+    const transferInstruction = await createTransferCheckedWithTransferHookInstruction(
+      connection,
+      sourceTokenAccount,
+      mint.publicKey,
+      destinationTokenAccount,
+      wallet.publicKey,
+      bigIntAmount,
+      decimals,
+      [],
+      "confirmed",
+      TOKEN_2022_PROGRAM_ID,
+    );
+
+    const transaction = new Transaction().add(
+      transferInstruction
+    );
+
+    const txSig = await sendAndConfirmTransaction(
+      connection,
+      transaction,
+      [wallet.payer],
+      { skipPreflight: true }
+    );
+    console.log("Transfer Signature:", txSig);
+
+
+    const balanceSourceAfter = (await getAccount(connection, sourceTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    const balanceDestinationAfter = (await getAccount(connection, destinationTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    const balanceHoldersAfter = (await getAccount(connection, holdersTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    const balanceMarketingAfter = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    const balanceLiquidityAfter = (await getAccount(connection, liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    console.log({ balanceSourceAfter, balanceDestinationAfter, balanceHoldersAfter, balanceMarketingAfter, balanceLiquidityAfter });
+  });
+
+  it("Transfer Hook with Extra Account Meta2", async () => {
+    // 1 tokens
+    const amount = 1 * 10 ** decimals - 1;
     const bigIntAmount = BigInt(amount);
     const balanceSourceBefore = (await getAccount(connection, sourceTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceDestinationBefore = (await getAccount(connection, destinationTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
