@@ -58,28 +58,6 @@ pub mod sol_earna {
                 false, // is_signer
                 true,  // is_writable
             )?,
-            ExtraAccountMeta::new_with_pubkey(
-                &ctx.accounts.marketing_token_account.key(),
-                false,
-                true,
-            )?,
-            ExtraAccountMeta::new_with_pubkey(
-                &ctx.accounts.liquidity_token_account.key(),
-                false,
-                true,
-            )?,
-            ExtraAccountMeta::new_with_pubkey(
-                &ctx.accounts.holders_token_account.key(),
-                false,
-                true,
-            )?,
-            ExtraAccountMeta::new_with_seeds(
-                &[Seed::Literal {
-                    bytes: "fee-recipient-holders".as_bytes().to_vec(),
-                }],
-                false,
-                true,
-            )?,
         ];
 
         // calculate account size
@@ -123,6 +101,9 @@ pub mod sol_earna {
         ctx.accounts.fee_config.liquidity_token_account =
             ctx.accounts.liquidity_token_account.key();
         ctx.accounts.fee_config.holders_token_account = ctx.accounts.holders_token_account.key();
+        ctx.accounts.fee_config.total_fee_holders = 0;
+        ctx.accounts.fee_config.total_fee_liqudity = 0;
+        ctx.accounts.fee_config.total_fee_marketing = 0;
 
         Ok(())
     }
@@ -152,48 +133,26 @@ pub mod sol_earna {
         }
 
         if !fee_free {
-            let signer_seeds: &[&[&[u8]]] = &[&[
-                FEE_RECIPIENT_HOLDERS_TAG,
-                &[ctx.bumps.fee_recipient_liquidity],
-            ]];
-            
             let holders_fee: u64 = amount * fee_config.fee_percent_holders as u64 / 10000;
             let liquidity_fee: u64 = amount * fee_config.fee_percent_liqudity as u64 / 10000;
             let marketing_fee: u64 = amount * fee_config.fee_percent_marketing as u64 / 10000;
             // TODO: need to check about the dust fee
             msg!("{:?} {:?} {:?}", liquidity_fee, marketing_fee, holders_fee);
             if liquidity_fee > 0 {
-                msg!("{:?} {:?} {:?} {:?} {:?}",
-                    ctx.accounts.token_program.to_account_info().key(),
-                    ctx.accounts.token_program.to_account_info().key(),
-                    ctx.accounts.mint.to_account_info().key(),
-                    ctx.accounts.fee_recipient_liquidity.to_account_info().key(),
-                    ctx.accounts.owner.to_account_info().key(),
-                );
-                
-                let ix = withdraw_withheld_tokens_from_accounts(
-                    &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
-                    &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
-                    &ctx.accounts.fee_recipient_liquidity.to_account_info().key(), // destination: &Pubkey,
-                    &ctx.accounts.fee_recipient_liquidity.to_account_info().key(), // authority: &Pubkey,
-                    &[&ctx.accounts.fee_recipient_liquidity.to_account_info().key()], // signers: &[&Pubkey],
-                    &[], // sources: &[&Pubkey],
-                )?;
-
-                solana_program::program::invoke_signed(
-                    &ix,
-                    &[
-                        ctx.accounts.token_program.to_account_info(),
-                        ctx.accounts.mint.to_account_info(),
-                        ctx.accounts.liquidity_token_account.to_account_info(),
-                        ctx.accounts.fee_recipient_liquidity.to_account_info(),
-                        // ctx.accounts.owner.to_account_info(),
-                    ],
-                    signer_seeds,
-                )?;
+                ctx.accounts.fee_config.total_fee_liqudity += liquidity_fee;
             }
-            if marketing_fee > 0 {}
-            if holders_fee > 0 {}
+            if marketing_fee > 0 {
+                ctx.accounts.fee_config.total_fee_marketing += marketing_fee;
+            }
+            if holders_fee > 0 {
+                ctx.accounts.fee_config.total_fee_holders += holders_fee;
+            }
+            msg!(
+                "{:?} {:?} {:?}", 
+                ctx.accounts.fee_config.total_fee_liqudity,
+                ctx.accounts.fee_config.total_fee_marketing,
+                ctx.accounts.fee_config.total_fee_holders
+            );
         }
 
         Ok(())
