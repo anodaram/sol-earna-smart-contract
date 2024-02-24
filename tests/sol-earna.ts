@@ -30,6 +30,8 @@ import {
   getTransferHook,
   getExtraAccountMetaAddress,
   getExtraAccountMetas,
+  getTransferFeeAmount,
+  unpackAccount
 } from "@solana/spl-token";
 import assert from "assert";
 
@@ -67,7 +69,7 @@ describe("sol-earna", () => {
   );
 
   const [feeConfigPDA] = PublicKey.findProgramAddressSync(
-    [FEE_CONFIG_TAG, mint.publicKey.toBuffer()],
+    [FEE_CONFIG_TAG, mint.publicKey.toBuffer(), wallet.publicKey.toBuffer()],
     program.programId
   );
 
@@ -375,5 +377,50 @@ describe("sol-earna", () => {
     const balanceMarketingAfter = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceLiquidityAfter = (await getAccount(connection, liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     console.log({ balanceSourceAfter, balanceDestinationAfter, balanceHoldersAfter, balanceMarketingAfter, balanceLiquidityAfter });
+    
+    console.log({
+      sourceTokenAccount,
+      destinationTokenAccount,
+      holdersTokenAccount,
+      marketingTokenAccount,
+      liquidityTokenAccount
+    });
+    
+    
+    const allAccounts = await connection.getProgramAccounts(TOKEN_2022_PROGRAM_ID, {
+      commitment: "confirmed",
+      filters: [
+        {
+          memcmp: {
+            offset: 0,
+            bytes: mint.publicKey.toString(), // Mint Account address
+          },
+        },
+      ],
+    });
+    // List of Token Accounts to withdraw fees from
+    const accountsToWithdrawFrom = [];
+    
+    for (const accountInfo of allAccounts) {
+      const account = unpackAccount(
+        accountInfo.pubkey, // Token Account address
+        accountInfo.account, // Token Account data
+        TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
+      );
+    
+      // Extract transfer fee data from each account
+      const transferFeeAmount = getTransferFeeAmount(account);
+      console.log(accountInfo, transferFeeAmount);
+    
+      // Check if fees are available to be withdrawn
+      if (transferFeeAmount !== null && transferFeeAmount.withheldAmount > 0) {
+        accountsToWithdrawFrom.push(accountInfo.pubkey); // Add account to withdrawal list
+      }
+    }
   });
+
+
+  it("Transfer Hook with Extra Account Meta2", async () => {
+  });
+
 });

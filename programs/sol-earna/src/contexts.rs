@@ -35,7 +35,7 @@ pub struct InitializeExtraAccountMetaList<'info> {
 
     #[account(
         init_if_needed,
-        seeds = [FEE_CONFIG_TAG, mint.key().as_ref()],
+        seeds = [FEE_CONFIG_TAG, mint.key().as_ref(), payer.key().as_ref()],
         bump,
         payer = payer,
         space = std::mem::size_of::<FeeConfig>() + 8
@@ -93,12 +93,79 @@ pub struct TransferHook<'info> {
 
     #[account(
         mut,
-        seeds = [FEE_CONFIG_TAG, mint.key().as_ref()],
+        seeds = [FEE_CONFIG_TAG, mint.key().as_ref(), owner.key().as_ref()],
         bump
     )]
     pub fee_config: Account<'info, FeeConfig>,
 }
 
 #[derive(Accounts)]
-pub struct ClaimReward {
+pub struct ClaimReward<'info> {
+    /// CHECK: source token account owner, can be SystemAccount or PDA owned by another program
+    pub owner: UncheckedAccount<'info>,
+
+    #[account(mut)]
+    pub user: Signer<'info>,
+    
+    #[account(
+        token::mint = mint,
+        token::authority = user,
+    )]
+    pub destination_token: InterfaceAccount<'info, TokenAccount>,
+
+    pub mint: InterfaceAccount<'info, Mint>,
+    
+    pub token_program: Interface<'info, TokenInterface>,
+
+    #[account(
+        mut,
+        seeds = [FEE_CONFIG_TAG, mint.key().as_ref(), owner.key().as_ref()],
+        bump
+    )]
+    pub fee_config: Account<'info, FeeConfig>,
+
+    #[account(
+        mut,
+        seeds = [FEE_STORAGE_TAG], // TODO: need to put owner in the seeds list, for the purpose of security
+        bump,
+    )]
+    pub fee_storage: SystemAccount<'info>,
+
+    #[account(
+        mut,
+        token::mint = mint,
+        token::authority = fee_storage,
+    )]
+    pub fee_storage_token_account: InterfaceAccount<'info, TokenAccount>,
+}
+
+#[derive(Accounts)]
+pub struct FeeCollected<'info> {
+    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    pub mint: InterfaceAccount<'info, Mint>,
+    
+    pub token_program: Interface<'info, TokenInterface>,
+
+    #[account(
+        mut,
+        seeds = [FEE_CONFIG_TAG, mint.key().as_ref(), owner.key().as_ref()],
+        bump
+    )]
+    pub fee_config: Account<'info, FeeConfig>,
+
+    #[account(
+        mut,
+        seeds = [FEE_STORAGE_TAG], // TODO: need to put owner in the seeds list, for the purpose of security
+        bump,
+    )]
+    pub fee_storage: SystemAccount<'info>,
+
+    #[account(
+        mut,
+        token::mint = mint,
+        token::authority = fee_storage,
+    )]
+    pub fee_storage_token_account: InterfaceAccount<'info, TokenAccount>,
 }
