@@ -100,7 +100,7 @@ pub struct TransferHook<'info> {
 }
 
 #[derive(Accounts)]
-pub struct ClaimReward<'info> {
+pub struct ClaimFee<'info> {
     /// CHECK: source token account owner, can be SystemAccount or PDA owned by another program
     pub owner: UncheckedAccount<'info>,
 
@@ -108,6 +108,7 @@ pub struct ClaimReward<'info> {
     pub user: Signer<'info>,
     
     #[account(
+        mut,
         token::mint = mint,
         token::authority = user,
     )]
