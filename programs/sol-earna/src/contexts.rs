@@ -100,12 +100,36 @@ pub struct TransferHook<'info> {
 }
 
 #[derive(Accounts)]
-pub struct ClaimFee<'info> {
-    /// CHECK: source token account owner, can be SystemAccount or PDA owned by another program
-    pub owner: UncheckedAccount<'info>,
-
+pub struct FeeCollected<'info> {
     #[account(mut)]
-    pub user: Signer<'info>,
+    pub owner: Signer<'info>,
+
+    pub mint: InterfaceAccount<'info, Mint>,
+    
+    pub token_program: Interface<'info, TokenInterface>,
+
+    #[account(
+        mut,
+        seeds = [FEE_CONFIG_TAG, mint.key().as_ref(), owner.key().as_ref()],
+        bump
+    )]
+    pub fee_config: Account<'info, FeeConfig>,
+
+    #[account(
+        mut,
+        token::mint = mint,
+        token::authority = owner,
+    )]
+    pub fee_storage_token_account: InterfaceAccount<'info, TokenAccount>,
+}
+
+#[derive(Accounts)]
+pub struct FeeClaimed<'info> {
+    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    /// CHECK: user's account
+    pub user: UncheckedAccount<'info>,
     
     #[account(
         mut,
@@ -127,46 +151,8 @@ pub struct ClaimFee<'info> {
 
     #[account(
         mut,
-        seeds = [FEE_STORAGE_TAG], // TODO: need to put owner in the seeds list, for the purpose of security
-        bump,
-    )]
-    pub fee_storage: SystemAccount<'info>,
-
-    #[account(
-        mut,
         token::mint = mint,
-        token::authority = fee_storage,
-    )]
-    pub fee_storage_token_account: InterfaceAccount<'info, TokenAccount>,
-}
-
-#[derive(Accounts)]
-pub struct FeeCollected<'info> {
-    #[account(mut)]
-    pub owner: Signer<'info>,
-
-    pub mint: InterfaceAccount<'info, Mint>,
-    
-    pub token_program: Interface<'info, TokenInterface>,
-
-    #[account(
-        mut,
-        seeds = [FEE_CONFIG_TAG, mint.key().as_ref(), owner.key().as_ref()],
-        bump
-    )]
-    pub fee_config: Account<'info, FeeConfig>,
-
-    #[account(
-        mut,
-        seeds = [FEE_STORAGE_TAG], // TODO: need to put owner in the seeds list, for the purpose of security
-        bump,
-    )]
-    pub fee_storage: SystemAccount<'info>,
-
-    #[account(
-        mut,
-        token::mint = mint,
-        token::authority = fee_storage,
+        token::authority = owner,
     )]
     pub fee_storage_token_account: InterfaceAccount<'info, TokenAccount>,
 }

@@ -18,6 +18,7 @@ use spl_tlv_account_resolution::{
     account::ExtraAccountMeta, seeds::Seed, state::ExtraAccountMetaList,
 };
 use spl_transfer_hook_interface::instruction::{ExecuteInstruction, TransferHookInstruction};
+use std::cmp;
 
 declare_id!("xnwVapsgETFh2cz8LFPfTyneACVaMtxbR7D7KeFH3K8");
 
@@ -127,126 +128,8 @@ pub mod sol_earna {
         Ok(())
     }
 
-    pub fn claim_fee(ctx: Context<ClaimFee>) -> Result<()> {
-        let destination_token_account = ctx.accounts.destination_token.to_account_info().key();
-
-        let fee_config = &mut ctx.accounts.fee_config;
-
-        let signer_seeds: &[&[&[u8]]] = &[&[b"fee-storage", &[ctx.bumps.fee_storage]]];
-
-        if destination_token_account == fee_config.marketing_token_account {
-            msg!("Claim for marketing");
-            let mut amount = fee_config.unclaimed_fee_marketing;
-            let balance = ctx.accounts.fee_storage_token_account.amount;
-            msg!("amount {:?} {:?}", amount, balance);
-            amount = 10;
-            if balance < amount {
-                msg!("Need to reduce amount from {:?} to {:?}", amount, balance);
-                amount = balance;
-            }
-
-            if amount > 0 {
-                transfer_checked(
-                    CpiContext::new_with_signer(
-                        ctx.accounts.token_program.to_account_info(),
-                        TransferChecked {
-                            from: ctx.accounts.fee_storage_token_account.to_account_info(),
-                            mint: ctx.accounts.mint.to_account_info(),
-                            to: ctx.accounts.destination_token.to_account_info(),
-                            authority: ctx.accounts.fee_storage.to_account_info(),
-                        },
-                        signer_seeds
-                    ),
-                    // .with_signer(signer_seeds),
-                    amount,
-                    ctx.accounts.mint.decimals,
-                )?;
-
-                // solana_program::program::invoke_signed(
-                //     &withdraw_withheld_tokens_from_accounts(
-                //         &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
-                //         &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
-                //         &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
-                //         &ctx.accounts
-                //             .fee_storage_token_account
-                //             .to_account_info()
-                //             .key(), // authority: &Pubkey,
-                //         &[&ctx.accounts.fee_storage.to_account_info().key()], // signers: &[&Pubkey],
-                //         &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
-                //     )?,
-                //     &[
-                //         ctx.accounts.token_program.to_account_info(),
-                //         ctx.accounts.mint.to_account_info(),
-                //         ctx.accounts.fee_storage_token_account.to_account_info(),
-                //         ctx.accounts.fee_storage.to_account_info(),
-                //         ctx.accounts.destination_token.to_account_info(),
-                //     ],
-                //     &[&[FEE_STORAGE_TAG, &[ctx.bumps.fee_storage]]],
-                // )?;
-
-                // fee_config.unclaimed_fee_marketing -= amount;
-                // fee_config.fee_collected -= amount;
-            }
-        }
-        if destination_token_account == fee_config.liquidity_token_account {
-            msg!("Claim for liquidity");
-            let mut amount = fee_config.unclaimed_fee_liqudity;
-            let balance = ctx.accounts.fee_storage_token_account.amount;
-            if balance < amount {
-                msg!("Need to reduce amount from {:?} to {:?}", amount, balance);
-                amount = balance;
-            }
-
-            if amount > 0 {
-                transfer_checked(
-                    CpiContext::new(
-                        ctx.accounts.token_program.to_account_info(),
-                        TransferChecked {
-                            from: ctx.accounts.fee_storage_token_account.to_account_info(),
-                            mint: ctx.accounts.mint.to_account_info(),
-                            to: ctx.accounts.destination_token.to_account_info(),
-                            authority: ctx.accounts.fee_storage.to_account_info(),
-                        },
-                    )
-                    .with_signer(signer_seeds),
-                    amount,
-                    ctx.accounts.mint.decimals,
-                )?;
-
-            //     solana_program::program::invoke_signed(
-            //         &withdraw_withheld_tokens_from_accounts(
-            //             &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
-            //             &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
-            //             &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
-            //             &ctx.accounts
-            //                 .fee_storage_token_account
-            //                 .to_account_info()
-            //                 .key(), // authority: &Pubkey,
-            //             &[&ctx.accounts.fee_storage.to_account_info().key()], // signers: &[&Pubkey],
-            //             &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
-            //         )?,
-            //         &[
-            //             ctx.accounts.token_program.to_account_info(),
-            //             ctx.accounts.mint.to_account_info(),
-            //             ctx.accounts.fee_storage_token_account.to_account_info(),
-            //             ctx.accounts.fee_storage.to_account_info(),
-            //             ctx.accounts.destination_token.to_account_info(),
-            //         ],
-            //         &[&[FEE_STORAGE_TAG, &[ctx.bumps.fee_storage]]],
-            //     )?;
-
-            //     fee_config.unclaimed_fee_liqudity -= amount;
-            //     fee_config.fee_collected -= amount;
-            }
-        }
-
-        Ok(())
-    }
-
     pub fn fee_collected(ctx: Context<FeeCollected>, amount: u64) -> Result<()> {
-        msg!("Fee Collected 0");
         let fee_config: &mut Account<'_, FeeConfig> = &mut ctx.accounts.fee_config;
-        msg!("Fee Collected 1");
 
         solana_program::program::invoke_signed(
             &withdraw_withheld_tokens_from_accounts(
@@ -269,7 +152,6 @@ pub mod sol_earna {
                 ctx.accounts.token_program.to_account_info(),
                 ctx.accounts.mint.to_account_info(),
                 ctx.accounts.fee_storage_token_account.to_account_info(),
-                ctx.accounts.fee_storage.to_account_info(),
             ],
             &[],
         )?;
@@ -283,7 +165,7 @@ pub mod sol_earna {
         }
         fee_config.fee_collected += amount;
         
-        msg!("Fee Collected 2 {:?} {:?} {:?}", balance, fee_config.fee_not_collected, fee_config.fee_collected);
+        msg!("Fee Collected {:?} {:?} {:?}", balance, fee_config.fee_not_collected, fee_config.fee_collected);
         require!(
             balance >= fee_config.fee_collected,
             SolEarnaError::CollectFeeAmountMismatch
@@ -299,12 +181,115 @@ pub mod sol_earna {
             amount * fee_config.fee_percent_liqudity as u64 / total_fee_percent as u64;
         let marketing_fee: u64 =
             amount * fee_config.fee_percent_marketing as u64 / total_fee_percent as u64;
-        msg!("Fee Collected 3");
 
         fee_config.unclaimed_fee_holders += holders_fee;
         fee_config.unclaimed_fee_liqudity += liquidity_fee;
         fee_config.unclaimed_fee_marketing += marketing_fee;
 
+        Ok(())
+    }
+    
+    pub fn fee_claimed(ctx: Context<FeeClaimed>, amount: u64) -> Result<()> {
+        if amount == 0 {
+            return Ok(());
+        }
+        let destination_token_account = ctx.accounts.destination_token.to_account_info().key();
+
+        let fee_config = &mut ctx.accounts.fee_config;
+
+        if destination_token_account == fee_config.marketing_token_account {
+            msg!("Claim for marketing");
+            let mut _amount = amount;
+            if _amount > cmp::min(fee_config.fee_collected, fee_config.unclaimed_fee_marketing) {
+                _amount = cmp::min(fee_config.fee_collected, fee_config.unclaimed_fee_marketing);
+                msg!("Claim Amount is too big, need to reduce to {:?}", _amount);
+            }
+            if _amount > 0 {
+                solana_program::program::invoke_signed(
+                    &withdraw_withheld_tokens_from_accounts(
+                        &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
+                        &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
+                        &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
+                        &ctx.accounts
+                            .fee_storage_token_account
+                            .to_account_info()
+                            .key(), // authority: &Pubkey,
+                        &[&ctx.accounts.owner.to_account_info().key()], // signers: &[&Pubkey],
+                        &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
+                    )?,
+                    &[
+                        ctx.accounts.token_program.to_account_info(),
+                        ctx.accounts.mint.to_account_info(),
+                        ctx.accounts.fee_storage_token_account.to_account_info(),
+                        ctx.accounts.owner.to_account_info(),
+                        ctx.accounts.destination_token.to_account_info(),
+                    ],
+                    &[],
+                )?;
+
+                fee_config.unclaimed_fee_marketing -= _amount;
+                fee_config.fee_collected -= _amount;
+            }
+        }
+        else if destination_token_account == fee_config.liquidity_token_account {
+            msg!("Claim for liquidity");
+            let mut _amount = amount;
+            if _amount > cmp::min(fee_config.fee_collected, fee_config.unclaimed_fee_liqudity) {
+                _amount = cmp::min(fee_config.fee_collected, fee_config.unclaimed_fee_liqudity);
+                msg!("Claim Amount is too big, need to reduce to {:?}", _amount);
+            }
+
+            if _amount > 0 {
+                solana_program::program::invoke_signed(
+                    &withdraw_withheld_tokens_from_accounts(
+                        &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
+                        &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
+                        &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
+                        &ctx.accounts
+                            .fee_storage_token_account
+                            .to_account_info()
+                            .key(), // authority: &Pubkey,
+                        &[&ctx.accounts.owner.to_account_info().key()], // signers: &[&Pubkey],
+                        &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
+                    )?,
+                    &[
+                        ctx.accounts.token_program.to_account_info(),
+                        ctx.accounts.mint.to_account_info(),
+                        ctx.accounts.fee_storage_token_account.to_account_info(),
+                        ctx.accounts.owner.to_account_info(),
+                        ctx.accounts.destination_token.to_account_info(),
+                    ],
+                    &[],
+                )?;
+
+                fee_config.unclaimed_fee_liqudity -= _amount;
+                fee_config.fee_collected -= _amount;
+            }
+        }
+        else {
+            msg!("Claim for holder");
+            solana_program::program::invoke_signed(
+                &withdraw_withheld_tokens_from_accounts(
+                    &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
+                    &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
+                    &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
+                    &ctx.accounts
+                        .fee_storage_token_account
+                        .to_account_info()
+                        .key(), // authority: &Pubkey,
+                    &[&ctx.accounts.owner.to_account_info().key()], // signers: &[&Pubkey],
+                    &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
+                )?,
+                &[
+                    ctx.accounts.token_program.to_account_info(),
+                    ctx.accounts.mint.to_account_info(),
+                    ctx.accounts.fee_storage_token_account.to_account_info(),
+                    ctx.accounts.owner.to_account_info(),
+                    ctx.accounts.destination_token.to_account_info(),
+                ],
+                &[],
+            )?;
+        }
         Ok(())
     }
 

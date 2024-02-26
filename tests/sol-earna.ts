@@ -33,15 +33,14 @@ import {
   getExtraAccountMetas,
   getTransferFeeAmount,
   unpackAccount,
-  withdrawWithheldTokensFromAccounts
+  withdrawWithheldTokensFromAccounts,
 } from "@solana/spl-token";
 import assert from "assert";
 
 import {
   EXTRA_ACCOUNT_METAS_TAG,
   FEE_CONFIG_TAG,
-  FEE_RECIPIENT_HOLDERS_TAG,
-  FEE_STORAGE_TAG
+  FEE_RECIPIENT_HOLDERS_TAG
 } from "./constants";
 
 describe("sol-earna", () => {
@@ -85,11 +84,6 @@ describe("sol-earna", () => {
     program.programId
   );
 
-  const [feeStoragePDA] = PublicKey.findProgramAddressSync(
-    [FEE_STORAGE_TAG],
-    program.programId
-  );
-
   const liquidityTokenAccount = getAssociatedTokenAddressSync(
     mint.publicKey,
     feeRecipientLiquidity.publicKey,
@@ -116,8 +110,8 @@ describe("sol-earna", () => {
 
   const feeStorageTokenAccount = getAssociatedTokenAddressSync(
     mint.publicKey,
-    feeStoragePDA,
-    true,
+    wallet.publicKey,
+    false,
     TOKEN_2022_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID
   );
@@ -197,7 +191,7 @@ describe("sol-earna", () => {
       createAssociatedTokenAccountInstruction(
         wallet.publicKey,
         feeStorageTokenAccount,
-        feeStoragePDA,
+        wallet.publicKey,
         mint.publicKey,
         TOKEN_2022_PROGRAM_ID,
         ASSOCIATED_TOKEN_PROGRAM_ID
@@ -256,9 +250,10 @@ describe("sol-earna", () => {
   });
 
   // Sender token account address
+  const sender = Keypair.generate();
   const sourceTokenAccount = getAssociatedTokenAddressSync(
     mint.publicKey,
-    wallet.publicKey,
+    sender.publicKey,
     false,
     TOKEN_2022_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID
@@ -277,6 +272,20 @@ describe("sol-earna", () => {
   // Create the two token accounts for the transfer-hook enabled mint
   // Fund the sender token account with 100 tokens
   it("Create Token Accounts and Mint Tokens", async () => {
+    // airdrop SOL to accounts
+    const signature = await connection.requestAirdrop(
+        new PublicKey(sender.publicKey),
+        100 * 10**9
+    );
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+    await connection.confirmTransaction({
+        blockhash,
+        lastValidBlockHeight,
+        signature
+    },'finalized');
+    console.log(`Tx Complete: https://explorer.solana.com/tx/${signature}?cluster=devnet`);
+
+
     // 100 tokens
     const amount = 100 * 10 ** decimals;
 
@@ -284,7 +293,7 @@ describe("sol-earna", () => {
       createAssociatedTokenAccountInstruction(
         wallet.publicKey,
         sourceTokenAccount,
-        wallet.publicKey,
+        sender.publicKey,
         mint.publicKey,
         TOKEN_2022_PROGRAM_ID,
         ASSOCIATED_TOKEN_PROGRAM_ID
@@ -334,7 +343,7 @@ describe("sol-earna", () => {
       sourceTokenAccount,
       mint.publicKey,
       destinationTokenAccount,
-      wallet.publicKey,
+      sender.publicKey,
       bigIntAmount,
       decimals,
       [],
@@ -349,7 +358,7 @@ describe("sol-earna", () => {
     const txSig = await sendAndConfirmTransaction(
       connection,
       transaction,
-      [wallet.payer],
+      [sender],
       { skipPreflight: true }
     );
     console.log("Transfer Signature:", txSig);
@@ -379,7 +388,7 @@ describe("sol-earna", () => {
       sourceTokenAccount,
       mint.publicKey,
       destinationTokenAccount,
-      wallet.publicKey,
+      sender.publicKey,
       bigIntAmount,
       decimals,
       [],
@@ -394,7 +403,7 @@ describe("sol-earna", () => {
     const txSig = await sendAndConfirmTransaction(
       connection,
       transaction,
-      [wallet.payer],
+      [sender],
       { skipPreflight: true }
     );
     console.log("Transfer Signature:", txSig);
@@ -474,37 +483,58 @@ describe("sol-earna", () => {
     console.log({ balanceFeeStorageAfter });
 
     const collectedFee = (balanceFeeStorageAfter - balanceFeeStorageBefore).toString();
-    console.log({collectedFee});
-    
+    console.log({ collectedFee });
 
     const txSig2 = await program.methods.feeCollected(new anchor.BN(collectedFee)).accounts({
       owner: wallet.publicKey,
       mint: mint.publicKey,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       feeConfig: feeConfigPDA,
-      feeStorage: feeStoragePDA,
       feeStorageTokenAccount: feeStorageTokenAccount
     })
-    .signers([wallet.payer])
-    .rpc();
+      .signers([wallet.payer])
+      .rpc();
     console.log("Transfer Signature2:", txSig2);
 
   });
 
   it("Claim Fee for Marketing", async () => {
-    const txSig = await program.methods.claimFee().accounts({
+    const feeConfig = await program.account.feeConfig.fetch(feeConfigPDA);
+    const unclaimedFeeMarketing = feeConfig.unclaimedFeeMarketing;
+
+    const transferInstruction = await createTransferCheckedWithTransferHookInstruction(
+      connection,
+      feeStorageTokenAccount,
+      mint.publicKey,
+      marketingTokenAccount,
+      wallet.publicKey,
+      BigInt(unclaimedFeeMarketing.toString()),
+      decimals,
+      [],
+      "confirmed",
+      TOKEN_2022_PROGRAM_ID
+    );
+
+    const txSig1 = await sendAndConfirmTransaction(
+      connection,
+      new Transaction().add(transferInstruction),
+      [wallet.payer],
+      { skipPreflight: true }
+    );
+    console.log("Transfer Signature:", txSig1);
+
+    const txSig2 = await program.methods.feeClaimed(unclaimedFeeMarketing).accounts({
       owner: wallet.publicKey,
       user: feeRecipientMarketing.publicKey,
       destinationToken: marketingTokenAccount,
       mint: mint.publicKey,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       feeConfig: feeConfigPDA,
-      feeStorage: feeStoragePDA,
       feeStorageTokenAccount: feeStorageTokenAccount
     })
-    .signers([feeRecipientMarketing])
-    .rpc();
-    console.log("Transfer Signature:", txSig);
+      .signers([feeRecipientMarketing])
+      .rpc();
+    console.log("Transfer Signature:", txSig2);
     const marketingRewardAfter = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     console.log({ marketingRewardAfter });
   });
@@ -517,7 +547,6 @@ describe("sol-earna", () => {
     //   mint: mint.publicKey,
     //   tokenProgram: TOKEN_2022_PROGRAM_ID,
     //   feeConfig: feeConfigPDA,
-    //   feeStorage: feeStoragePDA,
     //   feeStorageTokenAccount: feeStorageTokenAccount
     // })
     // .signers([feeRecipientLiquidity])
