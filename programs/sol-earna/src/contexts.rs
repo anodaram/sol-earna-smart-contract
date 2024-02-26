@@ -1,16 +1,10 @@
 use anchor_lang::{
     prelude::*,
-    system_program::{create_account, CreateAccount},
 };
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked},
+    token_interface::{Mint, TokenAccount, TokenInterface},
 };
-use spl_tlv_account_resolution::{
-    account::ExtraAccountMeta, seeds::Seed, state::ExtraAccountMetaList,
-};
-use spl_transfer_hook_interface::instruction::{ExecuteInstruction, TransferHookInstruction};
-
 use crate::*;
 use states::*;
 use constants::*;

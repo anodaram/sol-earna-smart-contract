@@ -19,21 +19,11 @@ import {
   createAssociatedTokenAccountInstruction,
   createMintToInstruction,
   getAssociatedTokenAddressSync,
-  createApproveInstruction,
-  createSyncNativeInstruction,
-  NATIVE_MINT,
-  TOKEN_PROGRAM_ID,
   getAccount,
-  getOrCreateAssociatedTokenAccount,
   createTransferCheckedWithTransferHookInstruction,
   createWithdrawWithheldTokensFromAccountsInstruction,
-  getMint,
-  getTransferHook,
-  getExtraAccountMetaAddress,
-  getExtraAccountMetas,
   getTransferFeeAmount,
   unpackAccount,
-  withdrawWithheldTokensFromAccounts,
 } from "@solana/spl-token";
 import assert from "assert";
 
@@ -216,7 +206,6 @@ describe("sol-earna", () => {
 
     PUT_LOG && console.log("Extra accounts meta: " + extraAccountMetasInfo);
 
-    // if (extraAccountMetasInfo === null) {
     const initializeExtraAccountMetaListInstruction = await program.methods
       .initializeExtraAccountMetaList(
         FEE_PERCENT_HOLDERS,
@@ -227,13 +216,12 @@ describe("sol-earna", () => {
         {
           extraAccountMetaList: extraAccountMetaListPDA,
           mint: mint.publicKey,
-          tokenProgram: TOKEN_2022_PROGRAM_ID, // originally TOKEN_PROGRAM_ID
+          tokenProgram: TOKEN_2022_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           feeConfig: feeConfigPDA,
           liquidityTokenAccount,
           marketingTokenAccount,
           holdersTokenAccount,
-          // feeRecipientLiquidity: feeRecipientLiquidity.publicKey,
         }
       )
       .instruction();
@@ -332,10 +320,7 @@ describe("sol-earna", () => {
     const bigIntAmount = BigInt(amount);
     const balanceSourceBefore = (await getAccount(connection, sourceTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceDestinationBefore = (await getAccount(connection, destinationTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    const balanceHoldersBefore = (await getAccount(connection, holdersTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    const balanceMarketingBefore = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    const balanceLiquidityBefore = (await getAccount(connection, liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    PUT_LOG && console.log({ balanceSourceBefore, balanceDestinationBefore, balanceHoldersBefore, balanceMarketingBefore, balanceLiquidityBefore });
+    PUT_LOG && console.log({ balanceSourceBefore, balanceDestinationBefore });
 
     // Standard token transfer instruction
     const transferInstruction = await createTransferCheckedWithTransferHookInstruction(
@@ -365,10 +350,7 @@ describe("sol-earna", () => {
 
     const balanceSourceAfter = (await getAccount(connection, sourceTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceDestinationAfter = (await getAccount(connection, destinationTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    const balanceHoldersAfter = (await getAccount(connection, holdersTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    const balanceMarketingAfter = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    const balanceLiquidityAfter = (await getAccount(connection, liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    // PUT_LOG && console.log({ balanceSourceAfter, balanceDestinationAfter, balanceHoldersAfter, balanceMarketingAfter, balanceLiquidityAfter });
+    PUT_LOG && console.log({ balanceSourceAfter, balanceDestinationAfter });
   });
 
   it("Transfer Hook with Extra Account Meta2", async () => {
@@ -377,10 +359,7 @@ describe("sol-earna", () => {
     const bigIntAmount = BigInt(amount);
     const balanceSourceBefore = (await getAccount(connection, sourceTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceDestinationBefore = (await getAccount(connection, destinationTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    const balanceHoldersBefore = (await getAccount(connection, holdersTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    const balanceMarketingBefore = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    const balanceLiquidityBefore = (await getAccount(connection, liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    // PUT_LOG && console.log({ balanceSourceBefore, balanceDestinationBefore, balanceHoldersBefore, balanceMarketingBefore, balanceLiquidityBefore });
+    PUT_LOG && console.log({ balanceSourceBefore, balanceDestinationBefore });
 
     // Standard token transfer instruction
     const transferInstruction = await createTransferCheckedWithTransferHookInstruction(
@@ -410,18 +389,7 @@ describe("sol-earna", () => {
 
     const balanceSourceAfter = (await getAccount(connection, sourceTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceDestinationAfter = (await getAccount(connection, destinationTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    const balanceHoldersAfter = (await getAccount(connection, holdersTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    const balanceMarketingAfter = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    const balanceLiquidityAfter = (await getAccount(connection, liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    PUT_LOG && console.log({ balanceSourceAfter, balanceDestinationAfter, balanceHoldersAfter, balanceMarketingAfter, balanceLiquidityAfter });
-
-    // PUT_LOG && console.log({
-    //   sourceTokenAccount,
-    //   destinationTokenAccount,
-    //   holdersTokenAccount,
-    //   marketingTokenAccount,
-    //   liquidityTokenAccount
-    // });
+    PUT_LOG && console.log({ balanceSourceAfter, balanceDestinationAfter });
   });
 
   it("Collect Fee", async () => {
@@ -455,7 +423,7 @@ describe("sol-earna", () => {
         accountsToWithdrawFrom.push(accountInfo.pubkey); // Add account to withdrawal list
       }
     }
-    // PUT_LOG && console.log({ accountsToWithdrawFrom });
+    PUT_LOG && console.log({ accountsToWithdrawFrom });
 
     const transferInstruction = createWithdrawWithheldTokensFromAccountsInstruction(
       mint.publicKey,
