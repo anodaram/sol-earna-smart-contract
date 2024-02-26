@@ -4,14 +4,22 @@ use anchor_lang::{
 };
 use anchor_spl::token_interface::{
     accessor::mint,
-    spl_token_2022::extension::transfer_fee::instruction::{
-        transfer_checked_with_fee, withdraw_withheld_tokens_from_accounts,
+    spl_token_2022::{
+        extension::transfer_fee::instruction::{
+            transfer_checked_with_fee, withdraw_withheld_tokens_from_accounts,
+        },
+        instruction::transfer_checked,
     },
 };
 use anchor_spl::{
     associated_token::AssociatedToken,
     token_interface::{
-        transfer_checked, Mint, TokenAccount, TokenInterface, Transfer, TransferChecked
+        // transfer_checked,
+        Mint,
+        TokenAccount,
+        TokenInterface,
+        Transfer,
+        TransferChecked,
     },
 };
 use spl_tlv_account_resolution::{
@@ -118,7 +126,9 @@ pub mod sol_earna {
         msg!("Hello Transfer Hook!");
 
         let fee_config = &mut ctx.accounts.fee_config;
-        let total_fee_percent = fee_config.fee_percent_holders + fee_config.fee_percent_liqudity + fee_config.fee_percent_marketing;
+        let total_fee_percent = fee_config.fee_percent_holders
+            + fee_config.fee_percent_liqudity
+            + fee_config.fee_percent_marketing;
 
         let total_fee: u64 = amount * total_fee_percent as u64 / 10000;
 
@@ -139,28 +149,73 @@ pub mod sol_earna {
             let mut amount = fee_config.unclaimed_fee_marketing;
             let balance = ctx.accounts.fee_storage_token_account.amount;
             msg!("amount {:?} {:?}", amount, balance);
-            amount = 10;
             if balance < amount {
                 msg!("Need to reduce amount from {:?} to {:?}", amount, balance);
                 amount = balance;
             }
 
             if amount > 0 {
-                transfer_checked(
-                    CpiContext::new_with_signer(
+                let mut transfer_idx = transfer_checked(
+                    ctx.accounts.token_program.to_account_info().key, // token_program_id: &Pubkey,
+                    ctx.accounts.fee_storage_token_account.to_account_info().key, // source_pubkey: &Pubkey,
+                    ctx.accounts.mint.to_account_info().key, // mint_pubkey: &Pubkey,
+                    ctx.accounts.destination_token.to_account_info().key, // destination_pubkey: &Pubkey,
+                    ctx.accounts.fee_storage.to_account_info().key, // authority_pubkey: &Pubkey,
+                    &[&ctx.accounts.fee_storage.to_account_info().key], // signer_pubkeys: &[&Pubkey],
+                    amount,                                             // amount: u64,
+                    ctx.accounts.mint.decimals,                         // decimals: u8,
+                )
+                .unwrap();
+                transfer_idx.accounts.push(AccountMeta::new_readonly(
+                    *ctx.accounts.self_program.to_account_info().key,
+                    false,
+                ));
+
+                transfer_idx.accounts.push(AccountMeta::new_readonly(
+                    *ctx.accounts.extra_account_meta_list.to_account_info().key,
+                    false,
+                ));
+
+                transfer_idx.accounts.push(AccountMeta::new(
+                    *fee_config.to_account_info().key,
+                    false,
+                ));
+
+                transfer_idx.accounts.push(AccountMeta::new_readonly(
+                    *ctx.accounts.associated_token_program.to_account_info().key,
+                    false,
+                ));
+
+                solana_program::program::invoke_signed(
+                    &transfer_idx,
+                    &[
                         ctx.accounts.token_program.to_account_info(),
-                        TransferChecked {
-                            from: ctx.accounts.fee_storage_token_account.to_account_info(),
-                            mint: ctx.accounts.mint.to_account_info(),
-                            to: ctx.accounts.destination_token.to_account_info(),
-                            authority: ctx.accounts.fee_storage.to_account_info(),
-                        },
-                        signer_seeds
-                    ),
-                    // .with_signer(signer_seeds),
-                    amount,
-                    ctx.accounts.mint.decimals,
+                        ctx.accounts.fee_storage_token_account.to_account_info(),
+                        ctx.accounts.mint.to_account_info(),
+                        ctx.accounts.destination_token.to_account_info(),
+                        ctx.accounts.fee_storage.to_account_info(),
+                        ctx.accounts.self_program.to_account_info(),
+                        ctx.accounts.extra_account_meta_list.to_account_info(),
+                        fee_config.to_account_info(),
+                        ctx.accounts.associated_token_program.to_account_info(),
+                    ],
+                    signer_seeds,
                 )?;
+
+                // transfer_checked(
+                //     CpiContext::new(
+                //         ctx.accounts.token_program.to_account_info(),
+                //         TransferChecked {
+                //             from: ctx.accounts.fee_storage_token_account.to_account_info(),
+                //             mint: ctx.accounts.mint.to_account_info(),
+                //             to: ctx.accounts.destination_token.to_account_info(),
+                //             authority: ctx.accounts.fee_storage.to_account_info(),
+                //         },
+                //     )
+                //     .with_signer(signer_seeds),
+                //     amount,
+                //     ctx.accounts.mint.decimals,
+                // )?;
 
                 // solana_program::program::invoke_signed(
                 //     &withdraw_withheld_tokens_from_accounts(
@@ -198,45 +253,45 @@ pub mod sol_earna {
             }
 
             if amount > 0 {
-                transfer_checked(
-                    CpiContext::new(
-                        ctx.accounts.token_program.to_account_info(),
-                        TransferChecked {
-                            from: ctx.accounts.fee_storage_token_account.to_account_info(),
-                            mint: ctx.accounts.mint.to_account_info(),
-                            to: ctx.accounts.destination_token.to_account_info(),
-                            authority: ctx.accounts.fee_storage.to_account_info(),
-                        },
-                    )
-                    .with_signer(signer_seeds),
-                    amount,
-                    ctx.accounts.mint.decimals,
-                )?;
+                // transfer_checked(
+                //     CpiContext::new(
+                //         ctx.accounts.token_program.to_account_info(),
+                //         TransferChecked {
+                //             from: ctx.accounts.fee_storage_token_account.to_account_info(),
+                //             mint: ctx.accounts.mint.to_account_info(),
+                //             to: ctx.accounts.destination_token.to_account_info(),
+                //             authority: ctx.accounts.fee_storage.to_account_info(),
+                //         },
+                //     )
+                //     .with_signer(signer_seeds),
+                //     amount,
+                //     ctx.accounts.mint.decimals,
+                // )?;
 
-            //     solana_program::program::invoke_signed(
-            //         &withdraw_withheld_tokens_from_accounts(
-            //             &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
-            //             &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
-            //             &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
-            //             &ctx.accounts
-            //                 .fee_storage_token_account
-            //                 .to_account_info()
-            //                 .key(), // authority: &Pubkey,
-            //             &[&ctx.accounts.fee_storage.to_account_info().key()], // signers: &[&Pubkey],
-            //             &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
-            //         )?,
-            //         &[
-            //             ctx.accounts.token_program.to_account_info(),
-            //             ctx.accounts.mint.to_account_info(),
-            //             ctx.accounts.fee_storage_token_account.to_account_info(),
-            //             ctx.accounts.fee_storage.to_account_info(),
-            //             ctx.accounts.destination_token.to_account_info(),
-            //         ],
-            //         &[&[FEE_STORAGE_TAG, &[ctx.bumps.fee_storage]]],
-            //     )?;
+                //     solana_program::program::invoke_signed(
+                //         &withdraw_withheld_tokens_from_accounts(
+                //             &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
+                //             &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
+                //             &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
+                //             &ctx.accounts
+                //                 .fee_storage_token_account
+                //                 .to_account_info()
+                //                 .key(), // authority: &Pubkey,
+                //             &[&ctx.accounts.fee_storage.to_account_info().key()], // signers: &[&Pubkey],
+                //             &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
+                //         )?,
+                //         &[
+                //             ctx.accounts.token_program.to_account_info(),
+                //             ctx.accounts.mint.to_account_info(),
+                //             ctx.accounts.fee_storage_token_account.to_account_info(),
+                //             ctx.accounts.fee_storage.to_account_info(),
+                //             ctx.accounts.destination_token.to_account_info(),
+                //         ],
+                //         &[&[FEE_STORAGE_TAG, &[ctx.bumps.fee_storage]]],
+                //     )?;
 
-            //     fee_config.unclaimed_fee_liqudity -= amount;
-            //     fee_config.fee_collected -= amount;
+                //     fee_config.unclaimed_fee_liqudity -= amount;
+                //     fee_config.fee_collected -= amount;
             }
         }
 
@@ -273,17 +328,21 @@ pub mod sol_earna {
             ],
             &[],
         )?;
-        
+
         let balance: u64 = ctx.accounts.fee_storage_token_account.amount;
         if amount > fee_config.fee_not_collected {
             fee_config.fee_not_collected = 0;
-        }
-        else {
+        } else {
             fee_config.fee_not_collected -= amount;
         }
         fee_config.fee_collected += amount;
-        
-        msg!("Fee Collected 2 {:?} {:?} {:?}", balance, fee_config.fee_not_collected, fee_config.fee_collected);
+
+        msg!(
+            "Fee Collected 2 {:?} {:?} {:?}",
+            balance,
+            fee_config.fee_not_collected,
+            fee_config.fee_collected
+        );
         require!(
             balance >= fee_config.fee_collected,
             SolEarnaError::CollectFeeAmountMismatch

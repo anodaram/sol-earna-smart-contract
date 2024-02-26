@@ -117,6 +117,7 @@ pub struct ClaimFee<'info> {
     pub mint: InterfaceAccount<'info, Mint>,
     
     pub token_program: Interface<'info, TokenInterface>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
 
     #[account(
         mut,
@@ -138,6 +139,16 @@ pub struct ClaimFee<'info> {
         token::authority = fee_storage,
     )]
     pub fee_storage_token_account: InterfaceAccount<'info, TokenAccount>,
+
+    /// CHECK: no need to check, it's self
+    pub self_program: UncheckedAccount<'info>,
+
+    /// CHECK: ExtraAccountMetaList Account,
+    #[account(
+        seeds = [b"extra-account-metas", mint.key().as_ref()], 
+        bump
+    )]
+    pub extra_account_meta_list: UncheckedAccount<'info>,
 }
 
 #[derive(Accounts)]

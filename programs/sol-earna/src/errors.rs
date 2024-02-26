@@ -4,4 +4,6 @@ use anchor_lang::prelude::*;
 pub enum SolEarnaError {
     #[msg("Collect fee amount mismatch with balance")]
     CollectFeeAmountMismatch,
+    #[msg("Unknown Error")]
+    UnknownError,
 }
