@@ -14,7 +14,7 @@ sol_earna = "FDtsjCPSrknv6ZP6Mxpq6JHXMPh6eDAmAGHPh5SZh5So"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Devnet" # Or "Localnet"
+cluster = "Localnet" # Or ("Devnet" or "Localnet")
 wallet = "~/.config/solana/id.json"
 
 [scripts]
