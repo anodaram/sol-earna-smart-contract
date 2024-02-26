@@ -217,7 +217,7 @@ pub mod sol_earna {
                         &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
                         &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
                         &ctx.accounts.owner.to_account_info().key(), // authority: &Pubkey,
-                        &[], // signers: &[&Pubkey],
+                        &[],                                         // signers: &[&Pubkey],
                         &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
                     )?,
                     &[
@@ -247,7 +247,7 @@ pub mod sol_earna {
                         &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
                         &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
                         &ctx.accounts.owner.to_account_info().key(), // authority: &Pubkey,
-                        &[], // signers: &[&Pubkey],
+                        &[],                                         // signers: &[&Pubkey],
                         &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
                     )?,
                     &[
@@ -269,8 +269,8 @@ pub mod sol_earna {
                     &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
                     &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
                     &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
-                    &ctx.accounts.owner.to_account_info().key(), // authority: &Pubkey,
-                    &[], // signers: &[&Pubkey],
+                    &ctx.accounts.owner.to_account_info().key(),             // authority: &Pubkey,
+                    &[],                                                     // signers: &[&Pubkey],
                     &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
                 )?,
                 &[

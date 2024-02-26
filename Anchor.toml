@@ -7,11 +7,14 @@ skip-lint = false
 [programs.localnet]
 sol_earna = "xnwVapsgETFh2cz8LFPfTyneACVaMtxbR7D7KeFH3K8"
 
+[programs.devnet]
+sol_earna = "FDtsjCPSrknv6ZP6Mxpq6JHXMPh6eDAmAGHPh5SZh5So"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "Devnet" # Or "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
