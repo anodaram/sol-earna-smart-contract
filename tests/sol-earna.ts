@@ -75,7 +75,7 @@ describe("sol-earna", () => {
   );
 
   const [feeConfigPDA] = PublicKey.findProgramAddressSync(
-    [FEE_CONFIG_TAG, mint.publicKey.toBuffer(), wallet.publicKey.toBuffer()],
+    [FEE_CONFIG_TAG, mint.publicKey.toBuffer()],
     program.programId
   );
 
@@ -335,20 +335,20 @@ describe("sol-earna", () => {
     const balanceHoldersBefore = (await getAccount(connection, holdersTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceMarketingBefore = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceLiquidityBefore = (await getAccount(connection, liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    // console.log({ balanceSourceBefore, balanceDestinationBefore, balanceHoldersBefore, balanceMarketingBefore, balanceLiquidityBefore });
+    console.log({ balanceSourceBefore, balanceDestinationBefore, balanceHoldersBefore, balanceMarketingBefore, balanceLiquidityBefore });
 
     // Standard token transfer instruction
     const transferInstruction = await createTransferCheckedWithTransferHookInstruction(
-      connection,
-      sourceTokenAccount,
-      mint.publicKey,
-      destinationTokenAccount,
-      sender.publicKey,
-      bigIntAmount,
-      decimals,
-      [],
-      "confirmed",
-      TOKEN_2022_PROGRAM_ID,
+      connection, // connection: Connection,
+      sourceTokenAccount, // source: PublicKey,
+      mint.publicKey, // mint: PublicKey,
+      destinationTokenAccount, // destination: PublicKey,
+      sender.publicKey, // owner: PublicKey,
+      bigIntAmount, // amount: bigint,
+      decimals, // decimals: number,
+      [sender.publicKey], // multiSigners: (Signer | PublicKey)[] = [],
+      "confirmed", // commitment?: Commitment,
+      TOKEN_2022_PROGRAM_ID, // programId = TOKEN_PROGRAM_ID
     );
 
     const transaction = new Transaction().add(

@@ -35,7 +35,7 @@ pub struct InitializeExtraAccountMetaList<'info> {
 
     #[account(
         init_if_needed,
-        seeds = [FEE_CONFIG_TAG, mint.key().as_ref(), payer.key().as_ref()],
+        seeds = [FEE_CONFIG_TAG, mint.key().as_ref()],
         bump,
         payer = payer,
         space = std::mem::size_of::<FeeConfig>() + 8
@@ -93,7 +93,7 @@ pub struct TransferHook<'info> {
 
     #[account(
         mut,
-        seeds = [FEE_CONFIG_TAG, mint.key().as_ref(), owner.key().as_ref()],
+        seeds = [FEE_CONFIG_TAG, mint.key().as_ref()],
         bump
     )]
     pub fee_config: Account<'info, FeeConfig>,
@@ -110,7 +110,7 @@ pub struct FeeCollected<'info> {
 
     #[account(
         mut,
-        seeds = [FEE_CONFIG_TAG, mint.key().as_ref(), owner.key().as_ref()],
+        seeds = [FEE_CONFIG_TAG, mint.key().as_ref()],
         bump
     )]
     pub fee_config: Account<'info, FeeConfig>,
@@ -144,7 +144,7 @@ pub struct FeeClaimed<'info> {
 
     #[account(
         mut,
-        seeds = [FEE_CONFIG_TAG, mint.key().as_ref(), owner.key().as_ref()],
+        seeds = [FEE_CONFIG_TAG, mint.key().as_ref()],
         bump
     )]
     pub fee_config: Account<'info, FeeConfig>,
