@@ -11,7 +11,7 @@ use anchor_spl::token_interface::{
 use anchor_spl::{
     associated_token::AssociatedToken,
     token_interface::{
-        transfer_checked, Mint, TokenAccount, TokenInterface, Transfer, TransferChecked
+        transfer_checked, Mint, TokenAccount, TokenInterface, Transfer, TransferChecked,
     },
 };
 use spl_tlv_account_resolution::{
@@ -46,7 +46,7 @@ pub mod sol_earna {
         ctx: Context<InitializeExtraAccountMetaList>,
         fee_percent_holders: u16,
         fee_percent_marketing: u16,
-        fee_percent_liqudity: u16,
+        fee_percent_liquidity: u16,
     ) -> Result<()> {
         // The `addExtraAccountsToInstruction` JS helper function resolving incorrectly
         let account_metas = vec![
@@ -98,14 +98,14 @@ pub mod sol_earna {
 
         ctx.accounts.fee_config.fee_percent_holders = fee_percent_holders;
         ctx.accounts.fee_config.fee_percent_marketing = fee_percent_marketing;
-        ctx.accounts.fee_config.fee_percent_liqudity = fee_percent_liqudity;
+        ctx.accounts.fee_config.fee_percent_liquidity = fee_percent_liquidity;
         ctx.accounts.fee_config.marketing_token_account =
             ctx.accounts.marketing_token_account.key();
         ctx.accounts.fee_config.liquidity_token_account =
             ctx.accounts.liquidity_token_account.key();
         ctx.accounts.fee_config.holders_token_account = ctx.accounts.holders_token_account.key();
         ctx.accounts.fee_config.unclaimed_fee_holders = 0;
-        ctx.accounts.fee_config.unclaimed_fee_liqudity = 0;
+        ctx.accounts.fee_config.unclaimed_fee_liquidity = 0;
         ctx.accounts.fee_config.unclaimed_fee_marketing = 0;
         ctx.accounts.fee_config.fee_collected = 0;
         ctx.accounts.fee_config.fee_not_collected = 0;
@@ -119,7 +119,9 @@ pub mod sol_earna {
         msg!("Hello Transfer Hook!");
 
         let fee_config = &mut ctx.accounts.fee_config;
-        let total_fee_percent = fee_config.fee_percent_holders + fee_config.fee_percent_liqudity + fee_config.fee_percent_marketing;
+        let total_fee_percent = fee_config.fee_percent_holders
+            + fee_config.fee_percent_liquidity
+            + fee_config.fee_percent_marketing;
 
         let total_fee: u64 = amount * total_fee_percent as u64 / 10000;
 
@@ -155,40 +157,44 @@ pub mod sol_earna {
             ],
             &[],
         )?;
-        
+
         let balance: u64 = ctx.accounts.fee_storage_token_account.amount;
         if amount > fee_config.fee_not_collected {
             fee_config.fee_not_collected = 0;
-        }
-        else {
+        } else {
             fee_config.fee_not_collected -= amount;
         }
         fee_config.fee_collected += amount;
-        
-        msg!("Fee Collected {:?} {:?} {:?}", balance, fee_config.fee_not_collected, fee_config.fee_collected);
+
+        msg!(
+            "Fee Collected {:?} {:?} {:?}",
+            balance,
+            fee_config.fee_not_collected,
+            fee_config.fee_collected
+        );
         require!(
             balance >= fee_config.fee_collected,
             SolEarnaError::CollectFeeAmountMismatch
         );
 
         let total_fee_percent = fee_config.fee_percent_holders
-            + fee_config.fee_percent_liqudity
+            + fee_config.fee_percent_liquidity
             + fee_config.fee_percent_marketing;
 
         let holders_fee: u64 =
             amount * fee_config.fee_percent_holders as u64 / total_fee_percent as u64;
         let liquidity_fee: u64 =
-            amount * fee_config.fee_percent_liqudity as u64 / total_fee_percent as u64;
+            amount * fee_config.fee_percent_liquidity as u64 / total_fee_percent as u64;
         let marketing_fee: u64 =
             amount * fee_config.fee_percent_marketing as u64 / total_fee_percent as u64;
 
         fee_config.unclaimed_fee_holders += holders_fee;
-        fee_config.unclaimed_fee_liqudity += liquidity_fee;
+        fee_config.unclaimed_fee_liquidity += liquidity_fee;
         fee_config.unclaimed_fee_marketing += marketing_fee;
 
         Ok(())
     }
-    
+
     pub fn fee_claimed(ctx: Context<FeeClaimed>, amount: u64) -> Result<()> {
         if amount == 0 {
             return Ok(());
@@ -210,19 +216,15 @@ pub mod sol_earna {
                         &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
                         &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
                         &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
-                        &ctx.accounts
-                            .fee_storage_token_account
-                            .to_account_info()
-                            .key(), // authority: &Pubkey,
-                        &[&ctx.accounts.owner.to_account_info().key()], // signers: &[&Pubkey],
+                        &ctx.accounts.owner.to_account_info().key(), // authority: &Pubkey,
+                        &[], // signers: &[&Pubkey],
                         &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
                     )?,
                     &[
                         ctx.accounts.token_program.to_account_info(),
                         ctx.accounts.mint.to_account_info(),
-                        ctx.accounts.fee_storage_token_account.to_account_info(),
-                        ctx.accounts.owner.to_account_info(),
                         ctx.accounts.destination_token.to_account_info(),
+                        ctx.accounts.owner.to_account_info(),
                     ],
                     &[],
                 )?;
@@ -230,12 +232,11 @@ pub mod sol_earna {
                 fee_config.unclaimed_fee_marketing -= _amount;
                 fee_config.fee_collected -= _amount;
             }
-        }
-        else if destination_token_account == fee_config.liquidity_token_account {
+        } else if destination_token_account == fee_config.liquidity_token_account {
             msg!("Claim for liquidity");
             let mut _amount = amount;
-            if _amount > cmp::min(fee_config.fee_collected, fee_config.unclaimed_fee_liqudity) {
-                _amount = cmp::min(fee_config.fee_collected, fee_config.unclaimed_fee_liqudity);
+            if _amount > cmp::min(fee_config.fee_collected, fee_config.unclaimed_fee_liquidity) {
+                _amount = cmp::min(fee_config.fee_collected, fee_config.unclaimed_fee_liquidity);
                 msg!("Claim Amount is too big, need to reduce to {:?}", _amount);
             }
 
@@ -245,47 +246,38 @@ pub mod sol_earna {
                         &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
                         &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
                         &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
-                        &ctx.accounts
-                            .fee_storage_token_account
-                            .to_account_info()
-                            .key(), // authority: &Pubkey,
-                        &[&ctx.accounts.owner.to_account_info().key()], // signers: &[&Pubkey],
+                        &ctx.accounts.owner.to_account_info().key(), // authority: &Pubkey,
+                        &[], // signers: &[&Pubkey],
                         &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
                     )?,
                     &[
                         ctx.accounts.token_program.to_account_info(),
                         ctx.accounts.mint.to_account_info(),
-                        ctx.accounts.fee_storage_token_account.to_account_info(),
-                        ctx.accounts.owner.to_account_info(),
                         ctx.accounts.destination_token.to_account_info(),
+                        ctx.accounts.owner.to_account_info(),
                     ],
                     &[],
                 )?;
 
-                fee_config.unclaimed_fee_liqudity -= _amount;
+                fee_config.unclaimed_fee_liquidity -= _amount;
                 fee_config.fee_collected -= _amount;
             }
-        }
-        else {
+        } else {
             msg!("Claim for holder");
             solana_program::program::invoke_signed(
                 &withdraw_withheld_tokens_from_accounts(
                     &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
                     &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
                     &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
-                    &ctx.accounts
-                        .fee_storage_token_account
-                        .to_account_info()
-                        .key(), // authority: &Pubkey,
-                    &[&ctx.accounts.owner.to_account_info().key()], // signers: &[&Pubkey],
+                    &ctx.accounts.owner.to_account_info().key(), // authority: &Pubkey,
+                    &[], // signers: &[&Pubkey],
                     &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
                 )?,
                 &[
                     ctx.accounts.token_program.to_account_info(),
                     ctx.accounts.mint.to_account_info(),
-                    ctx.accounts.fee_storage_token_account.to_account_info(),
-                    ctx.accounts.owner.to_account_info(),
                     ctx.accounts.destination_token.to_account_info(),
+                    ctx.accounts.owner.to_account_info(),
                 ],
                 &[],
             )?;

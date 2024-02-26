@@ -43,6 +43,8 @@ import {
   FEE_RECIPIENT_HOLDERS_TAG
 } from "./constants";
 
+const PUT_LOG = false;
+
 describe("sol-earna", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
@@ -59,8 +61,8 @@ describe("sol-earna", () => {
   const feeRecipientLiquidity = Keypair.generate();
   const feeRecipientMarketing = Keypair.generate();
 
-  // console.log(feeRecipientLiquidity.secretKey);
-  // console.log(feeRecipientMarketing.secretKey);
+  // PUT_LOG && console.log(feeRecipientLiquidity.secretKey);
+  // PUT_LOG && console.log(feeRecipientMarketing.secretKey);
 
   const FEE_PERCENT_HOLDERS = 500; // 5%
   const FEE_PERCENT_MARKETING = 400; // 4%
@@ -159,7 +161,7 @@ describe("sol-earna", () => {
       [wallet.payer, mint],
       undefined
     );
-    console.log(`Transaction Signature: ${txSig}`);
+    PUT_LOG && console.log(`Transaction Signature: ${txSig}`);
   });
 
   it("Prepare Fee Recipient Accounts", async () => {
@@ -205,14 +207,14 @@ describe("sol-earna", () => {
       { skipPreflight: true }
     );
 
-    console.log(`Transaction Signature: ${txSig}`);
+    PUT_LOG && console.log(`Transaction Signature: ${txSig}`);
   });
 
   // Account to store extra accounts required by the transfer hook instruction
   it("Create ExtraAccountMetaList Account", async () => {
     const extraAccountMetasInfo = await connection.getAccountInfo(extraAccountMetaListPDA);
 
-    console.log("Extra accounts meta: " + extraAccountMetasInfo);
+    PUT_LOG && console.log("Extra accounts meta: " + extraAccountMetasInfo);
 
     // if (extraAccountMetasInfo === null) {
     const initializeExtraAccountMetaListInstruction = await program.methods
@@ -246,7 +248,7 @@ describe("sol-earna", () => {
       [wallet.payer],
       { skipPreflight: true, commitment: "confirmed" }
     );
-    console.log("Transaction Signature:", txSig);
+    PUT_LOG && console.log("Transaction Signature:", txSig);
   });
 
   // Sender token account address
@@ -274,17 +276,15 @@ describe("sol-earna", () => {
   it("Create Token Accounts and Mint Tokens", async () => {
     // airdrop SOL to accounts
     const signature = await connection.requestAirdrop(
-        new PublicKey(sender.publicKey),
-        100 * 10**9
+      new PublicKey(sender.publicKey),
+      100 * 10 ** 9
     );
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
     await connection.confirmTransaction({
-        blockhash,
-        lastValidBlockHeight,
-        signature
-    },'finalized');
-    console.log(`Tx Complete: https://explorer.solana.com/tx/${signature}?cluster=devnet`);
-
+      blockhash,
+      lastValidBlockHeight,
+      signature
+    }, 'finalized');
 
     // 100 tokens
     const amount = 100 * 10 ** decimals;
@@ -323,7 +323,7 @@ describe("sol-earna", () => {
       { skipPreflight: true }
     );
 
-    console.log(`Transaction Signature: ${txSig}`);
+    PUT_LOG && console.log(`Transaction Signature: ${txSig}`);
   });
 
   it("Transfer Hook with Extra Account Meta", async () => {
@@ -335,7 +335,7 @@ describe("sol-earna", () => {
     const balanceHoldersBefore = (await getAccount(connection, holdersTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceMarketingBefore = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceLiquidityBefore = (await getAccount(connection, liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    console.log({ balanceSourceBefore, balanceDestinationBefore, balanceHoldersBefore, balanceMarketingBefore, balanceLiquidityBefore });
+    PUT_LOG && console.log({ balanceSourceBefore, balanceDestinationBefore, balanceHoldersBefore, balanceMarketingBefore, balanceLiquidityBefore });
 
     // Standard token transfer instruction
     const transferInstruction = await createTransferCheckedWithTransferHookInstruction(
@@ -361,14 +361,14 @@ describe("sol-earna", () => {
       [sender],
       { skipPreflight: true }
     );
-    console.log("Transfer Signature:", txSig);
+    PUT_LOG && console.log("Transfer Signature:", txSig);
 
     const balanceSourceAfter = (await getAccount(connection, sourceTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceDestinationAfter = (await getAccount(connection, destinationTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceHoldersAfter = (await getAccount(connection, holdersTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceMarketingAfter = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceLiquidityAfter = (await getAccount(connection, liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    // console.log({ balanceSourceAfter, balanceDestinationAfter, balanceHoldersAfter, balanceMarketingAfter, balanceLiquidityAfter });
+    // PUT_LOG && console.log({ balanceSourceAfter, balanceDestinationAfter, balanceHoldersAfter, balanceMarketingAfter, balanceLiquidityAfter });
   });
 
   it("Transfer Hook with Extra Account Meta2", async () => {
@@ -380,7 +380,7 @@ describe("sol-earna", () => {
     const balanceHoldersBefore = (await getAccount(connection, holdersTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceMarketingBefore = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceLiquidityBefore = (await getAccount(connection, liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    // console.log({ balanceSourceBefore, balanceDestinationBefore, balanceHoldersBefore, balanceMarketingBefore, balanceLiquidityBefore });
+    // PUT_LOG && console.log({ balanceSourceBefore, balanceDestinationBefore, balanceHoldersBefore, balanceMarketingBefore, balanceLiquidityBefore });
 
     // Standard token transfer instruction
     const transferInstruction = await createTransferCheckedWithTransferHookInstruction(
@@ -406,16 +406,16 @@ describe("sol-earna", () => {
       [sender],
       { skipPreflight: true }
     );
-    console.log("Transfer Signature:", txSig);
+    PUT_LOG && console.log("Transfer Signature:", txSig);
 
     const balanceSourceAfter = (await getAccount(connection, sourceTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceDestinationAfter = (await getAccount(connection, destinationTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceHoldersAfter = (await getAccount(connection, holdersTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceMarketingAfter = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     const balanceLiquidityAfter = (await getAccount(connection, liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    console.log({ balanceSourceAfter, balanceDestinationAfter, balanceHoldersAfter, balanceMarketingAfter, balanceLiquidityAfter });
+    PUT_LOG && console.log({ balanceSourceAfter, balanceDestinationAfter, balanceHoldersAfter, balanceMarketingAfter, balanceLiquidityAfter });
 
-    // console.log({
+    // PUT_LOG && console.log({
     //   sourceTokenAccount,
     //   destinationTokenAccount,
     //   holdersTokenAccount,
@@ -448,14 +448,14 @@ describe("sol-earna", () => {
 
       // Extract transfer fee data from each account
       const transferFeeAmount = getTransferFeeAmount(account);
-      console.log(accountInfo, transferFeeAmount);
+      PUT_LOG && console.log(accountInfo, transferFeeAmount);
 
       // Check if fees are available to be withdrawn
       if (transferFeeAmount !== null && transferFeeAmount.withheldAmount > 0) {
         accountsToWithdrawFrom.push(accountInfo.pubkey); // Add account to withdrawal list
       }
     }
-    // console.log({ accountsToWithdrawFrom });
+    // PUT_LOG && console.log({ accountsToWithdrawFrom });
 
     const transferInstruction = createWithdrawWithheldTokensFromAccountsInstruction(
       mint.publicKey,
@@ -477,13 +477,13 @@ describe("sol-earna", () => {
       [wallet.payer],
       { skipPreflight: true }
     );
-    console.log("Transfer Signature:", txSig);
+    PUT_LOG && console.log("Transfer Signature:", txSig);
 
     const balanceFeeStorageAfter = (await getAccount(connection, feeStorageTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    console.log({ balanceFeeStorageAfter });
+    PUT_LOG && console.log({ balanceFeeStorageAfter });
 
     const collectedFee = (balanceFeeStorageAfter - balanceFeeStorageBefore).toString();
-    console.log({ collectedFee });
+    PUT_LOG && console.log({ collectedFee });
 
     const txSig2 = await program.methods.feeCollected(new anchor.BN(collectedFee)).accounts({
       owner: wallet.publicKey,
@@ -494,7 +494,7 @@ describe("sol-earna", () => {
     })
       .signers([wallet.payer])
       .rpc();
-    console.log("Transfer Signature2:", txSig2);
+    PUT_LOG && console.log("Transfer Signature2:", txSig2);
 
   });
 
@@ -521,41 +521,72 @@ describe("sol-earna", () => {
       [wallet.payer],
       { skipPreflight: true }
     );
-    console.log("Transfer Signature:", txSig1);
+    PUT_LOG && console.log("Transfer Signature:", txSig1);
+
+    PUT_LOG && console.log({ feeRecipientMarketing: feeRecipientMarketing.publicKey });
 
     const txSig2 = await program.methods.feeClaimed(unclaimedFeeMarketing).accounts({
-      owner: wallet.publicKey,
-      user: feeRecipientMarketing.publicKey,
-      destinationToken: marketingTokenAccount,
-      mint: mint.publicKey,
-      tokenProgram: TOKEN_2022_PROGRAM_ID,
-      feeConfig: feeConfigPDA,
-      feeStorageTokenAccount: feeStorageTokenAccount
+      owner: wallet.publicKey, // owner
+      user: feeRecipientMarketing.publicKey, // user
+      destinationToken: marketingTokenAccount, // destination_token
+      mint: mint.publicKey, // mint
+      tokenProgram: TOKEN_2022_PROGRAM_ID, // token_program
+      feeConfig: feeConfigPDA, // fee_config
+      feeStorageTokenAccount: feeStorageTokenAccount // fee_storage_token_account
     })
-      .signers([feeRecipientMarketing])
+      .signers([wallet.payer])
       .rpc();
-    console.log("Transfer Signature:", txSig2);
+
+    PUT_LOG && console.log("Transfer Signature:", txSig2);
     const marketingRewardAfter = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    console.log({ marketingRewardAfter });
+    PUT_LOG && console.log({ marketingRewardAfter });
   });
 
   it("Claim Fee for Liquidity", async () => {
-    // const txSig = await program.methods.claimFee().accounts({
-    //   owner: wallet.publicKey,
-    //   user: feeRecipientLiquidity.publicKey,
-    //   destinationToken: liquidityTokenAccount,
-    //   mint: mint.publicKey,
-    //   tokenProgram: TOKEN_2022_PROGRAM_ID,
-    //   feeConfig: feeConfigPDA,
-    //   feeStorageTokenAccount: feeStorageTokenAccount
-    // })
-    // .signers([feeRecipientLiquidity])
-    // .rpc();
-    // console.log("Transfer Signature:", txSig);
-    // const liquidityRewardAfter = (await getAccount(connection, liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
-    // console.log({ liquidityRewardAfter });
+    const feeConfig = await program.account.feeConfig.fetch(feeConfigPDA);
+    const unclaimedFeeLiquidity = feeConfig.unclaimedFeeLiquidity;
+
+    const transferInstruction = await createTransferCheckedWithTransferHookInstruction(
+      connection,
+      feeStorageTokenAccount,
+      mint.publicKey,
+      liquidityTokenAccount,
+      wallet.publicKey,
+      BigInt(unclaimedFeeLiquidity.toString()),
+      decimals,
+      [],
+      "confirmed",
+      TOKEN_2022_PROGRAM_ID
+    );
+
+    const txSig1 = await sendAndConfirmTransaction(
+      connection,
+      new Transaction().add(transferInstruction),
+      [wallet.payer],
+      { skipPreflight: true }
+    );
+    PUT_LOG && console.log("Transfer Signature:", txSig1);
+
+    PUT_LOG && console.log({ feeRecipientliquidity: feeRecipientLiquidity.publicKey });
+
+    const txSig2 = await program.methods.feeClaimed(unclaimedFeeLiquidity).accounts({
+      owner: wallet.publicKey, // owner
+      user: feeRecipientLiquidity.publicKey, // user
+      destinationToken: liquidityTokenAccount, // destination_token
+      mint: mint.publicKey, // mint
+      tokenProgram: TOKEN_2022_PROGRAM_ID, // token_program
+      feeConfig: feeConfigPDA, // fee_config
+      feeStorageTokenAccount: feeStorageTokenAccount // fee_storage_token_account
+    })
+      .signers([wallet.payer])
+      .rpc();
+
+    PUT_LOG && console.log("Transfer Signature:", txSig2);
+    const liquidityRewardAfter = (await getAccount(connection, liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    PUT_LOG && console.log({ liquidityRewardAfter });
   });
 
   it("Claim Fee for Holders", async () => {
+    // No need to test here, will be in DApp
   });
 });
