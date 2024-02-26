@@ -77,7 +77,7 @@ describe("sol-earna", () => {
   );
 
   const [feeConfigPDA] = PublicKey.findProgramAddressSync(
-    [FEE_CONFIG_TAG, mint.publicKey.toBuffer(), wallet.publicKey.toBuffer()],
+    [FEE_CONFIG_TAG, mint.publicKey.toBuffer()],
     program.programId
   );
 
@@ -278,6 +278,18 @@ describe("sol-earna", () => {
   // Create the two token accounts for the transfer-hook enabled mint
   // Fund the sender token account with 100 tokens
   it("Create Token Accounts and Mint Tokens", async () => {
+
+    const signature = await connection.requestAirdrop(
+      feeRecipientMarketing.publicKey,
+      100 * 10 ** 9
+    );
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+    await connection.confirmTransaction({
+      blockhash,
+      lastValidBlockHeight,
+      signature
+    }, 'finalized');
+
     // 100 tokens
     const amount = 100 * 10 ** decimals;
 
@@ -475,8 +487,8 @@ describe("sol-earna", () => {
     console.log({ balanceFeeStorageAfter });
 
     const collectedFee = (balanceFeeStorageAfter - balanceFeeStorageBefore).toString();
-    console.log({collectedFee});
-    
+    console.log({ collectedFee });
+
 
     const txSig2 = await program.methods.feeCollected(new anchor.BN(collectedFee)).accounts({
       owner: wallet.publicKey,
@@ -486,8 +498,8 @@ describe("sol-earna", () => {
       feeStorage: feeStoragePDA,
       feeStorageTokenAccount: feeStorageTokenAccount
     })
-    .signers([wallet.payer])
-    .rpc();
+      .signers([wallet.payer])
+      .rpc();
     console.log("Transfer Signature2:", txSig2);
 
   });
@@ -502,12 +514,12 @@ describe("sol-earna", () => {
       feeConfig: feeConfigPDA,
       feeStorage: feeStoragePDA,
       feeStorageTokenAccount: feeStorageTokenAccount,
-      selfProgram:  program.programId,
+      selfProgram: program.programId,
       extraAccountMetaList: extraAccountMetaListPDA,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID
     })
-    .signers([feeRecipientMarketing])
-    .rpc();
+      .signers([feeRecipientMarketing])
+      .rpc();
     console.log("Transfer Signature:", txSig);
     const marketingRewardAfter = (await getAccount(connection, marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
     console.log({ marketingRewardAfter });

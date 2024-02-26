@@ -176,15 +176,15 @@ pub mod sol_earna {
                     false,
                 ));
 
-                transfer_idx.accounts.push(AccountMeta::new(
-                    *fee_config.to_account_info().key,
-                    false,
-                ));
+                // transfer_idx.accounts.push(AccountMeta::new(
+                //     *fee_config.to_account_info().key,
+                //     false,
+                // ));
 
-                transfer_idx.accounts.push(AccountMeta::new_readonly(
-                    *ctx.accounts.associated_token_program.to_account_info().key,
-                    false,
-                ));
+                // transfer_idx.accounts.push(AccountMeta::new_readonly(
+                //     *ctx.accounts.associated_token_program.to_account_info().key,
+                //     false,
+                // ));
 
                 solana_program::program::invoke_signed(
                     &transfer_idx,
@@ -196,8 +196,8 @@ pub mod sol_earna {
                         ctx.accounts.fee_storage.to_account_info(),
                         ctx.accounts.self_program.to_account_info(),
                         ctx.accounts.extra_account_meta_list.to_account_info(),
-                        fee_config.to_account_info(),
-                        ctx.accounts.associated_token_program.to_account_info(),
+                        // fee_config.to_account_info(),
+                        // ctx.accounts.associated_token_program.to_account_info(),
                     ],
                     signer_seeds,
                 )?;
