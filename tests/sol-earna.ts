@@ -33,7 +33,7 @@ import {
   FEE_RECIPIENT_HOLDERS_TAG
 } from "./constants";
 
-const PUT_LOG = true;
+const PUT_LOG = false;
 
 describe("sol-earna", () => {
   // Configure the client to use the local cluster.

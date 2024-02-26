@@ -2,21 +2,8 @@ use anchor_lang::{
     prelude::*,
     system_program::{create_account, CreateAccount},
 };
-use anchor_spl::token_interface::{
-    accessor::mint,
-    spl_token_2022::extension::transfer_fee::instruction::{
-        transfer_checked_with_fee, withdraw_withheld_tokens_from_accounts,
-    },
-};
-use anchor_spl::{
-    associated_token::AssociatedToken,
-    token_interface::{
-        transfer_checked, Mint, TokenAccount, TokenInterface, Transfer, TransferChecked,
-    },
-};
-use spl_tlv_account_resolution::{
-    account::ExtraAccountMeta, seeds::Seed, state::ExtraAccountMetaList,
-};
+use anchor_spl::token_interface::spl_token_2022::extension::transfer_fee::instruction::withdraw_withheld_tokens_from_accounts;
+use spl_tlv_account_resolution::{account::ExtraAccountMeta, state::ExtraAccountMetaList};
 use spl_transfer_hook_interface::instruction::{ExecuteInstruction, TransferHookInstruction};
 use std::cmp;
 
