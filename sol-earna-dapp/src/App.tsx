@@ -3,13 +3,17 @@ import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { WalletDialogProvider, WalletMultiButton } from '@solana/wallet-adapter-material-ui';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { UnsafeBurnerWalletAdapter } from '@solana/wallet-adapter-wallets';
-import { clusterApiUrl } from '@solana/web3.js';
+import { clusterApiUrl, Cluster } from '@solana/web3.js';
 import { useSnackbar } from 'notistack';
 import type { FC, ReactNode } from 'react';
 import React, { useCallback, useMemo } from 'react';
 import { Theme } from './Theme';
 
+const NETWORK = process.env.REACT_APP_NETWORK;
+const SOL_EARNA_ADDRESS = process.env.REACT_APP_SOL_EARNA_ADDRESS;
+
 export const App: FC = () => {
+    console.log({NETWORK, SOL_EARNA_ADDRESS});
     return (
         <Theme>
             <Context>
@@ -21,10 +25,10 @@ export const App: FC = () => {
 
 const Context: FC<{ children: ReactNode }> = ({ children }) => {
     // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'.
-    const network = WalletAdapterNetwork.Devnet;
+    const network = NETWORK as Cluster;
 
     // You can also provide a custom RPC endpoint.
-    const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+    const endpoint = useMemo(() => clusterApiUrl(NETWORK), [network]);
 
     const wallets = useMemo(
         () => [

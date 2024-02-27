@@ -108,13 +108,6 @@ describe("sol-earna", () => {
     ASSOCIATED_TOKEN_PROGRAM_ID
   );
 
-
-  console.log(wallet.publicKey, wallet.payer.secretKey);
-  const tmp = Keypair.fromSecretKey(wallet.payer.secretKey);
-  console.log({ tmp: JSON.stringify(tmp) });
-
-  return;
-
   it("Create Mint Account with Transfer Hook Extension", async () => {
     const extensions = [ExtensionType.TransferFeeConfig, ExtensionType.TransferHook];
     const mintLen = getMintLen(extensions);
