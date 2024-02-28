@@ -1,7 +1,7 @@
 import type { Adapter, WalletError } from '@solana/wallet-adapter-base';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { WalletDialogProvider, WalletMultiButton } from '@solana/wallet-adapter-material-ui';
-import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
+import { ConnectionProvider, WalletProvider, useConnection } from '@solana/wallet-adapter-react';
 import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
@@ -67,14 +67,10 @@ const Context: FC<{ children: ReactNode }> = ({ children }) => {
   );
 };
 
-type PageType = 'Home' | 'Admin';
+type PageType = "Home" | "Admin";
 
 const Content: FC = () => {
   const [activePage, setActivePage] = useState<PageType>("Home");
-
-  const handleChange = (_e: any, activePage: PageType) => {
-    setActivePage(activePage);
-  }
 
   return (
     <>
