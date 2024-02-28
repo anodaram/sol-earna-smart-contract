@@ -6,7 +6,6 @@ import React from 'react';
 
 const theme = createTheme({
   palette: {
-    mode: 'dark',
     primary: {
       main: deepPurple[700],
     },

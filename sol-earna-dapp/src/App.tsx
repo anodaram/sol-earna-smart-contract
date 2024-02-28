@@ -14,9 +14,10 @@ import type { FC, ReactNode } from 'react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { Theme } from './Theme';
 
-import { Box, Tabs, Tab, Button } from '@mui/material';
+import { Button, AppBar, Toolbar, Box } from '@mui/material';
+import { Home, Admin } from './pages';
 
-import styles from './App.module.css';
+import './App.css';
 
 const NETWORK = process.env.REACT_APP_NETWORK;
 const SOL_EARNA_ADDRESS = process.env.REACT_APP_SOL_EARNA_ADDRESS;
@@ -66,25 +67,46 @@ const Context: FC<{ children: ReactNode }> = ({ children }) => {
   );
 };
 
-const Content: FC = () => {
-  const [activepage, setAcvitePage] = useState("Home");
+type PageType = 'Home' | 'Admin';
 
-  const handleChange = (e: any, activePage: any) => {
+const Content: FC = () => {
+  const [activePage, setActivePage] = useState<PageType>("Home");
+
+  const handleChange = (_e: any, activePage: PageType) => {
     setActivePage(activePage);
   }
 
   return (
-    <Box className={styles.root}>
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs value={activePage} onChange={handleChange} aria-label="basic tabs example" >
-          <Tab label="Home" value="Home" />
-          <Tab disabled style={styles.empty} />
-          <Tab label="Admin" value="Admin" />
-        </Tabs>
-      </Box>
-      {/* {activePage === "Home" && <Home strategies={strategies} tokens={tokens} deinvestRequests={deinvestRequests} />}
-      {activePage === "Admin" && <Admin strategies={strategies} tokens={tokens} deinvestRequests={deinvestRequests} />} */}
-      <WalletMultiButton className={styles.walletButton} />
-    </Box>
+    <>
+      <AppBar position="static">
+        <Box display="flex">
+          <Box display="flex" flex={1} justifyContent="space-between">
+            <Button
+              size="large"
+              aria-label="account of current user"
+              aria-controls="menu-appbar"
+              aria-haspopup="true"
+              color="inherit"
+              onClick={() => setActivePage("Home")}
+            >
+              Home
+            </Button>
+            <Button
+              size="large"
+              aria-label="account of current user"
+              aria-controls="menu-appbar"
+              aria-haspopup="true"
+              color="inherit"
+              onClick={() => setActivePage("Admin")}
+            >
+              Admin
+            </Button>
+          </Box>
+          <WalletMultiButton />
+        </Box>
+      </AppBar>
+      {activePage === "Home" && <Home />}
+      {activePage === "Admin" && <Admin />}
+    </>
   );
 };

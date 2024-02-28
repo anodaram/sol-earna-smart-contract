@@ -1,12 +1,26 @@
 .root {
-    position: absolute;
     width: 100%;
-    height: 100%;
+}
+
+.header {
+    flex: 1;
+    max-width: none;
+}
+
+.homeButton {
+    /* position: absolute;
+    left: 0; */
+}
+
+.adminButton {
+    /* position: absolute;
+    right: 0; */
 }
 
 .walletButton {
-    margin: 10px;
-    position: relative;
-    right: 0;
-    top: 0;
+}
+
+.empty {
+    flex: 1;
+    max-width: 'none';
 }
