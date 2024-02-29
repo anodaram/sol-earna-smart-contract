@@ -72,7 +72,7 @@ describe("sol-earna", () => {
   );
 
   const [feeRecipientHoldersPDA] = PublicKey.findProgramAddressSync(
-    [FEE_RECIPIENT_HOLDERS_TAG],
+    [FEE_RECIPIENT_HOLDERS_TAG, mint.publicKey.toBuffer()],
     program.programId
   );
 
