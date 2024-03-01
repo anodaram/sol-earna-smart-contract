@@ -2,271 +2,271 @@
     "version": "0.1.0",
     "name": "sol_earna",
     "instructions": [
-        {
-            "name": "initializeExtraAccountMetaList",
-            "accounts": [
-                {
-                    "name": "payer",
-                    "isMut": true,
-                    "isSigner": true
-                },
-                {
-                    "name": "extraAccountMetaList",
-                    "isMut": true,
-                    "isSigner": false
-                },
-                {
-                    "name": "mint",
-                    "isMut": false,
-                    "isSigner": false
-                },
-                {
-                    "name": "tokenProgram",
-                    "isMut": false,
-                    "isSigner": false
-                },
-                {
-                    "name": "associatedTokenProgram",
-                    "isMut": false,
-                    "isSigner": false
-                },
-                {
-                    "name": "systemProgram",
-                    "isMut": false,
-                    "isSigner": false
-                },
-                {
-                    "name": "feeConfig",
-                    "isMut": true,
-                    "isSigner": false
-                },
-                {
-                    "name": "marketingTokenAccount",
-                    "isMut": true,
-                    "isSigner": false
-                },
-                {
-                    "name": "liquidityTokenAccount",
-                    "isMut": true,
-                    "isSigner": false
-                },
-                {
-                    "name": "holdersTokenAccount",
-                    "isMut": true,
-                    "isSigner": false
-                }
-            ],
-            "args": [
-                {
-                    "name": "feePercentHolders",
-                    "type": "u16"
-                },
-                {
-                    "name": "feePercentMarketing",
-                    "type": "u16"
-                },
-                {
-                    "name": "feePercentLiquidity",
-                    "type": "u16"
-                }
-            ]
-        },
-        {
-            "name": "transferHook",
-            "accounts": [
-                {
-                    "name": "sourceToken",
-                    "isMut": false,
-                    "isSigner": false
-                },
-                {
-                    "name": "mint",
-                    "isMut": false,
-                    "isSigner": false
-                },
-                {
-                    "name": "destinationToken",
-                    "isMut": false,
-                    "isSigner": false
-                },
-                {
-                    "name": "owner",
-                    "isMut": false,
-                    "isSigner": false
-                },
-                {
-                    "name": "extraAccountMetaList",
-                    "isMut": false,
-                    "isSigner": false
-                },
-                {
-                    "name": "tokenProgram",
-                    "isMut": false,
-                    "isSigner": false
-                },
-                {
-                    "name": "associatedTokenProgram",
-                    "isMut": false,
-                    "isSigner": false
-                },
-                {
-                    "name": "feeConfig",
-                    "isMut": true,
-                    "isSigner": false
-                }
-            ],
-            "args": [
-                {
-                    "name": "amount",
-                    "type": "u64"
-                }
-            ]
-        },
-        {
-            "name": "feeCollected",
-            "accounts": [
-                {
-                    "name": "owner",
-                    "isMut": true,
-                    "isSigner": true
-                },
-                {
-                    "name": "mint",
-                    "isMut": false,
-                    "isSigner": false
-                },
-                {
-                    "name": "tokenProgram",
-                    "isMut": false,
-                    "isSigner": false
-                },
-                {
-                    "name": "feeConfig",
-                    "isMut": true,
-                    "isSigner": false
-                },
-                {
-                    "name": "feeStorageTokenAccount",
-                    "isMut": true,
-                    "isSigner": false
-                }
-            ],
-            "args": [
-                {
-                    "name": "amount",
-                    "type": "u64"
-                }
-            ]
-        },
-        {
-            "name": "feeClaimed",
-            "accounts": [
-                {
-                    "name": "owner",
-                    "isMut": true,
-                    "isSigner": true
-                },
-                {
-                    "name": "user",
-                    "isMut": false,
-                    "isSigner": false
-                },
-                {
-                    "name": "destinationToken",
-                    "isMut": true,
-                    "isSigner": false
-                },
-                {
-                    "name": "mint",
-                    "isMut": false,
-                    "isSigner": false
-                },
-                {
-                    "name": "tokenProgram",
-                    "isMut": false,
-                    "isSigner": false
-                },
-                {
-                    "name": "feeConfig",
-                    "isMut": true,
-                    "isSigner": false
-                },
-                {
-                    "name": "feeStorageTokenAccount",
-                    "isMut": true,
-                    "isSigner": false
-                }
-            ],
-            "args": [
-                {
-                    "name": "amount",
-                    "type": "u64"
-                }
-            ]
-        }
+      {
+        "name": "initializeExtraAccountMetaList",
+        "accounts": [
+          {
+            "name": "payer",
+            "isMut": true,
+            "isSigner": true
+          },
+          {
+            "name": "extraAccountMetaList",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "mint",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "tokenProgram",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "associatedTokenProgram",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "systemProgram",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "feeConfig",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "marketingTokenAccount",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "liquidityTokenAccount",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "holdersTokenAccount",
+            "isMut": true,
+            "isSigner": false
+          }
+        ],
+        "args": [
+          {
+            "name": "feePercentHolders",
+            "type": "u16"
+          },
+          {
+            "name": "feePercentMarketing",
+            "type": "u16"
+          },
+          {
+            "name": "feePercentLiquidity",
+            "type": "u16"
+          }
+        ]
+      },
+      {
+        "name": "transferHook",
+        "accounts": [
+          {
+            "name": "sourceToken",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "mint",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "destinationToken",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "owner",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "extraAccountMetaList",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "tokenProgram",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "associatedTokenProgram",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "feeConfig",
+            "isMut": true,
+            "isSigner": false
+          }
+        ],
+        "args": [
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      },
+      {
+        "name": "feeCollected",
+        "accounts": [
+          {
+            "name": "owner",
+            "isMut": true,
+            "isSigner": true
+          },
+          {
+            "name": "mint",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "tokenProgram",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "feeConfig",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "feeStorageTokenAccount",
+            "isMut": true,
+            "isSigner": false
+          }
+        ],
+        "args": [
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      },
+      {
+        "name": "feeClaimed",
+        "accounts": [
+          {
+            "name": "owner",
+            "isMut": true,
+            "isSigner": true
+          },
+          {
+            "name": "user",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "destinationToken",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "mint",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "tokenProgram",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "feeConfig",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "feeStorageTokenAccount",
+            "isMut": true,
+            "isSigner": false
+          }
+        ],
+        "args": [
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
     ],
     "accounts": [
-        {
-            "name": "FeeConfig",
-            "type": {
-                "kind": "struct",
-                "fields": [
-                    {
-                        "name": "marketingTokenAccount",
-                        "type": "publicKey"
-                    },
-                    {
-                        "name": "liquidityTokenAccount",
-                        "type": "publicKey"
-                    },
-                    {
-                        "name": "holdersTokenAccount",
-                        "type": "publicKey"
-                    },
-                    {
-                        "name": "feePercentHolders",
-                        "type": "u16"
-                    },
-                    {
-                        "name": "feePercentMarketing",
-                        "type": "u16"
-                    },
-                    {
-                        "name": "feePercentLiquidity",
-                        "type": "u16"
-                    },
-                    {
-                        "name": "unclaimedFeeHolders",
-                        "type": "u64"
-                    },
-                    {
-                        "name": "unclaimedFeeMarketing",
-                        "type": "u64"
-                    },
-                    {
-                        "name": "unclaimedFeeLiquidity",
-                        "type": "u64"
-                    },
-                    {
-                        "name": "feeCollected",
-                        "type": "u64"
-                    },
-                    {
-                        "name": "feeNotCollected",
-                        "type": "u64"
-                    }
-                ]
+      {
+        "name": "FeeConfig",
+        "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "marketingTokenAccount",
+              "type": "publicKey"
+            },
+            {
+              "name": "liquidityTokenAccount",
+              "type": "publicKey"
+            },
+            {
+              "name": "holdersTokenAccount",
+              "type": "publicKey"
+            },
+            {
+              "name": "feePercentHolders",
+              "type": "u16"
+            },
+            {
+              "name": "feePercentMarketing",
+              "type": "u16"
+            },
+            {
+              "name": "feePercentLiquidity",
+              "type": "u16"
+            },
+            {
+              "name": "unclaimedFeeHolders",
+              "type": "u64"
+            },
+            {
+              "name": "unclaimedFeeMarketing",
+              "type": "u64"
+            },
+            {
+              "name": "unclaimedFeeLiquidity",
+              "type": "u64"
+            },
+            {
+              "name": "feeCollected",
+              "type": "u64"
+            },
+            {
+              "name": "feeNotCollected",
+              "type": "u64"
             }
+          ]
         }
+      }
     ],
     "errors": [
-        {
-            "code": 6000,
-            "name": "CollectFeeAmountMismatch",
-            "msg": "Collect fee amount mismatch with balance"
-        }
+      {
+        "code": 6000,
+        "name": "CollectFeeAmountMismatch",
+        "msg": "Collect fee amount mismatch with balance"
+      }
     ],
     "metadata": {
-        "address": "xnwVapsgETFh2cz8LFPfTyneACVaMtxbR7D7KeFH3K8"
+      "address": "FDtsjCPSrknv6ZP6Mxpq6JHXMPh6eDAmAGHPh5SZh5So"
     }
-}
+  }

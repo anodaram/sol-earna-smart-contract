@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AnchorWallet, useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
+import { AnchorWallet, Wallet, useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
 import {
     ASSOCIATED_TOKEN_PROGRAM_ID,
     ExtensionType,
@@ -13,11 +13,12 @@ import {
     getAssociatedTokenAddressSync,
     getMintLen,
 } from '@solana/spl-token';
-import { PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction, Keypair } from '@solana/web3.js';
+import { PublicKey, SystemProgram, Transaction, Keypair, Signer, sendAndConfirmTransaction } from '@solana/web3.js';
 
 import { useSolEarnaObj } from './common';
 import { Idl, Program } from '@project-serum/anchor';
 import { EXTRA_ACCOUNT_METAS_TAG, FEE_CONFIG_TAG } from './constants';
+import { WalletAdapterProps } from '@solana/wallet-adapter-base';
 
 export const useProgramStatus = () => {
   const { connection } = useConnection();
@@ -33,7 +34,8 @@ export const useProgramStatus = () => {
 };
 
 export const createNewSolEarnaMint = async (
-  wallet: AnchorWallet,
+  admin: PublicKey,
+  sendTransaction: WalletAdapterProps['sendTransaction'],
   solEarnaObj: Program<Idl>,
   feePercentHolders: number,
   feePercentMarketing: number,
@@ -58,17 +60,18 @@ export const createNewSolEarnaMint = async (
     FEE_PERCENT_HOLDERS,
     FEE_PERCENT_MARKETING,
     FEE_PERCENT_LIQUIDITY,
+    mint: mint.publicKey.toBase58(),
   });
 
   // 1. Create Mint Account with Transfer Hook Extension
   const transaction = new Transaction();
-  const extensions = [ExtensionType.TransferFeeConfig, ExtensionType.TransferHook];
+  const extensions: ExtensionType[] = [ExtensionType.TransferFeeConfig, ExtensionType.TransferHook];
   const mintLen = getMintLen(extensions);
   const lamports = await solEarnaObj.provider.connection.getMinimumBalanceForRentExemption(mintLen);
 
   transaction.add(
     SystemProgram.createAccount({
-      fromPubkey: wallet.publicKey,
+      fromPubkey: admin,
       newAccountPubkey: mint.publicKey,
       space: mintLen,
       lamports: lamports,
@@ -76,14 +79,14 @@ export const createNewSolEarnaMint = async (
     }),
     createInitializeTransferHookInstruction(
       mint.publicKey,
-      wallet.publicKey,
+      admin,
       solEarnaObj.programId,
       TOKEN_2022_PROGRAM_ID
     ),
     createInitializeTransferFeeConfigInstruction(
       mint.publicKey,
-      wallet.publicKey,
-      wallet.publicKey,
+      admin,
+      admin,
       TOTAL_FEE_PERCENT,
       BigInt(1_000_000_000),
       TOKEN_2022_PROGRAM_ID
@@ -91,15 +94,27 @@ export const createNewSolEarnaMint = async (
     createInitializeMintInstruction(
       mint.publicKey,
       decimals,
-      wallet.publicKey,
+      admin,
       null,
       TOKEN_2022_PROGRAM_ID
     )
   );
+  transaction.recentBlockhash = (await solEarnaObj.provider.connection.getLatestBlockhash()).blockhash;
+
+  console.log({transaction: JSON.stringify(transaction)});
+  transaction.sign(mint);
+  console.log({transaction: JSON.stringify(transaction)});
+
+  await sendTransaction(transaction, solEarnaObj.provider.connection, {
+    maxRetries: 10,
+    preflightCommitment: "processed",
+    skipPreflight: false
+  });
 
   // 2. Prepare Fee Recipient Accounts
+  const transaction2 = new Transaction();
   const [feeStorageTokenAccount, liquidityTokenAccount, marketingTokenAccount, holdersTokenAccount] = [
-    wallet.publicKey,
+    admin,
     feeRecipientLiquidity.publicKey,
     feeRecipientMarketing.publicKey,
     feeRecipientHolders.publicKey,
@@ -111,9 +126,9 @@ export const createNewSolEarnaMint = async (
       TOKEN_2022_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
-    transaction.add(
+    transaction2.add(
       createAssociatedTokenAccountInstruction(
-        wallet.publicKey,
+        admin,
         tokenAccount,
         ownerPublicKey,
         mint.publicKey,
@@ -123,6 +138,10 @@ export const createNewSolEarnaMint = async (
     );
     return tokenAccount;
   });
+  transaction2.recentBlockhash = (await solEarnaObj.provider.connection.getLatestBlockhash()).blockhash;
+
+  await sendTransaction(transaction2, solEarnaObj.provider.connection, { skipPreflight: true });
+  console.log({recentBlockhash: transaction2.recentBlockhash});
 
   // 3. Create ExtraAccountMetaList Account
   const [extraAccountMetaListPDA] = PublicKey.findProgramAddressSync(
@@ -157,7 +176,10 @@ export const createNewSolEarnaMint = async (
     )
     .instruction();
 
-  const transaction2 = new Transaction().add(
+  const transaction3 = new Transaction().add(
     initializeExtraAccountMetaListInstruction
   );
+  transaction3.recentBlockhash = (await solEarnaObj.provider.connection.getLatestBlockhash()).blockhash;
+
+  await sendTransaction(transaction3, solEarnaObj.provider.connection, { skipPreflight: true });
 };
