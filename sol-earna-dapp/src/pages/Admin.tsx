@@ -1,23 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Modal, Button, Table, TableHead, TableCell, TableRow, TableBody } from '@mui/material';
-import { createNewSolEarnaMint, getFeeRecipientWallets, TypeFeeRecipientWallet } from '../instructions';
+import { createNewSolEarnaMint, useFeeRecipientWallets, TypeFeeRecipientWallet } from '../instructions';
 import { useSolEarnaObj } from '../instructions/common';
 import { useAnchorWallet, useWallet } from '@solana/wallet-adapter-react';
-import { Keypair } from '@solana/web3.js';
 
 export function Admin() {
+  const [reloadTag, setReloadTag] = useState(false);
   const solEarnaObj = useSolEarnaObj();
   const { publicKey, sendTransaction } = useWallet();
-  const [feeRecipientLiquidity, setFeeRecipientLiquidity] = useState<TypeFeeRecipientWallet>();
-  const [feeRecipientMarketing, seteeRecipientMarketing] = useState<TypeFeeRecipientWallet>();
-  const [feeRecipientHolders, setFeeRecipientHolders] = useState<TypeFeeRecipientWallet>();
-
-  useEffect(() => {
-    const feeRecipientWallets = getFeeRecipientWallets();
-    setFeeRecipientLiquidity(feeRecipientWallets.feeRecipientLiquidity);
-    seteeRecipientMarketing(feeRecipientWallets.feeRecipientMarketing);
-    setFeeRecipientHolders(feeRecipientWallets.feeRecipientHolders);
-  }, []);
+  const { feeRecipientLiquidity, feeRecipientMarketing, feeRecipientHolders } = useFeeRecipientWallets(reloadTag);
 
   const createNewToken = async () => {
     if (!solEarnaObj) {
@@ -46,7 +37,7 @@ export function Admin() {
       <Button color="inherit" onClick={createNewToken} disabled>
         Create a new token
       </Button>
-      <Table>
+      <Table color="inherit">
         <TableHead>
           <TableRow>
             <TableCell></TableCell>
@@ -63,13 +54,18 @@ export function Admin() {
               { label: "Marketing", wallet: feeRecipientMarketing },
               { label: "Holders", wallet: feeRecipientHolders }
             ].map(({ label, wallet }) => (
-              <TableRow id={label}>
+              <TableRow key={label}>
                 <TableCell>{label}</TableCell>
                 <TableCell>{wallet?.address}</TableCell>
                 <TableCell>{wallet?.claimedAmount}</TableCell>
                 <TableCell>{wallet?.unclaimedAmount}</TableCell>
                 <TableCell>
-                  <Button variant="contained" onClick={wallet?.claim}>Claim</Button>
+                  <Button variant="contained" onClick={async () => {
+                    if (wallet) {
+                      await (wallet?.claim)();
+                      setReloadTag((prev) => !prev);
+                    }
+                  }}>Claim</Button>
                 </TableCell>
               </TableRow>
             ))

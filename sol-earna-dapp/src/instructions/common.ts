@@ -6,6 +6,10 @@ import * as anchor from '@project-serum/anchor';
 import idl from '../assets/sol_earna.json';
 
 export const SOL_EARNA_ADDRESS = process.env.REACT_APP_SOL_EARNA_ADDRESS;
+export const MINT_ADDRESS = process.env.REACT_APP_MINT_ADDRESS;
+
+export const solEarnaProgramId: PublicKey = new PublicKey(SOL_EARNA_ADDRESS as string);
+export const mintAddress: PublicKey = new PublicKey(MINT_ADDRESS as string);
 
 export const useSolEarnaObj = () => {
   const { connection } = useConnection();
@@ -13,17 +17,14 @@ export const useSolEarnaObj = () => {
   const wallet = useAnchorWallet();
 
   useEffect(() => {
-    (async () => {
-      if (wallet) {
-        const programId = new PublicKey(SOL_EARNA_ADDRESS as string);
-        const provider = new anchor.AnchorProvider(connection, wallet as anchor.Wallet, {
-          preflightCommitment: 'processed',
-          commitment: 'processed',
-        });
-        const program = new anchor.Program(idl as anchor.Idl, programId, provider);
-        setSolEarnaObj(program);
-      }
-    })();
+    if (wallet) {
+      const provider = new anchor.AnchorProvider(connection, wallet as anchor.Wallet, {
+        preflightCommitment: 'processed',
+        commitment: 'processed',
+      });
+      const program = new anchor.Program(idl as anchor.Idl, solEarnaProgramId, provider);
+      setSolEarnaObj(program);
+    }
   }, [connection, wallet]);
 
   return solEarnaObj;

@@ -20,7 +20,6 @@ import { Home, Admin } from './pages';
 import './App.css';
 
 const NETWORK = process.env.REACT_APP_NETWORK;
-const SOL_EARNA_ADDRESS = process.env.REACT_APP_SOL_EARNA_ADDRESS;
 
 export const App: FC = () => {
   return (
