@@ -79,7 +79,6 @@ const Content: FC = () => {
           <Box display="flex" flex={1} justifyContent="space-between">
             <Button
               size="large"
-              aria-label="account of current user"
               aria-controls="menu-appbar"
               aria-haspopup="true"
               color="inherit"
@@ -89,7 +88,6 @@ const Content: FC = () => {
             </Button>
             <Button
               size="large"
-              aria-label="account of current user"
               aria-controls="menu-appbar"
               aria-haspopup="true"
               color="inherit"

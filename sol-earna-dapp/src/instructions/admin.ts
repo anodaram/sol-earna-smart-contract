@@ -33,6 +33,7 @@ export const useProgramStatus = () => {
   return {};
 };
 
+// TODO: This function doesn't work for now. Error in Step.1
 export const createNewSolEarnaMint = async (
   admin: PublicKey,
   sendTransaction: WalletAdapterProps['sendTransaction'],

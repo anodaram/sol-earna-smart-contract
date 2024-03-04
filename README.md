@@ -1,5 +1,8 @@
 # sol-earna-smart-contract
 
+## Smart Contract
+Built on Anchor Framework
+
 ### Build & Test
 ``` bash
 anchor build
@@ -29,3 +32,6 @@ anchor deploy
 |Localnet|xnwVapsgETFh2cz8LFPfTyneACVaMtxbR7D7KeFH3K8|
 |Devnet|FDtsjCPSrknv6ZP6Mxpq6JHXMPh6eDAmAGHPh5SZh5So|
 |Mainnet||
+
+## DApp
+Built on React 18
