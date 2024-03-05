@@ -95,31 +95,21 @@ export const useFeeRecipientWallets = (reloadTag: Boolean = false) => {
         _feeRecipientHolders.unclaimedAmount = feeConfig.unclaimedFeeHolders.toNumber();
 
         // TODO: need to pass decimals as a param
-        _feeRecipientLiquidity.claimedAmount = bigintToNumber((await getAccount(
-          connection,
-          feeConfig.liquidityTokenAccount,
-          'processed',
-          TOKEN_2022_PROGRAM_ID
-        )).amount);
-        _feeRecipientMarketing.claimedAmount = bigintToNumber((await getAccount(
-          connection,
-          feeConfig.marketingTokenAccount,
-          'processed',
-          TOKEN_2022_PROGRAM_ID
-        )).amount);
-        _feeRecipientHolders.claimedAmount = bigintToNumber((await getAccount(
-          connection,
-          feeConfig.holdersTokenAccount,
-          'processed',
-          TOKEN_2022_PROGRAM_ID
-        )).amount);
+        _feeRecipientLiquidity.claimedAmount = bigintToNumber(
+          (await getAccount(connection, feeConfig.liquidityTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount
+        );
+        _feeRecipientMarketing.claimedAmount = bigintToNumber(
+          (await getAccount(connection, feeConfig.marketingTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount
+        );
+        _feeRecipientHolders.claimedAmount = bigintToNumber(
+          (await getAccount(connection, feeConfig.holdersTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount
+        );
 
         setFeeRecipientLiquidity(_feeRecipientLiquidity);
         setFeeRecipientMarketing(_feeRecipientMarketing);
         setFeeRecipientHolders(_feeRecipientHolders);
       })();
-    }
-    else {
+    } else {
       setFeeRecipientLiquidity(_feeRecipientLiquidity);
       setFeeRecipientMarketing(_feeRecipientMarketing);
       setFeeRecipientHolders(_feeRecipientHolders);
