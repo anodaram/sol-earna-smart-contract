@@ -62,6 +62,7 @@ export const useFeeConfig = (reloadTag: Boolean = false) => {
 export type TypeFeeRecipientWallet = {
   keypair: Keypair;
   address: string;
+  tokenAccount: string;
   unclaimedAmount: number;
   claimedAmount: number;
   claim: () => Promise<void>;
@@ -82,10 +83,11 @@ export const useFeeRecipientWallets = (reloadTag: Boolean = false) => {
     ].map((secretKey) => {
       const keypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(secretKey)));
       const address = keypair.publicKey.toBase58();
+      const tokenAccount = '';
       const unclaimedAmount = 0;
       const claimedAmount = 0;
       const claim = async () => {};
-      return { keypair, address, unclaimedAmount, claimedAmount, claim };
+      return { keypair, address, tokenAccount, unclaimedAmount, claimedAmount, claim };
     });
 
     if (feeConfig) {
@@ -93,6 +95,10 @@ export const useFeeRecipientWallets = (reloadTag: Boolean = false) => {
         _feeRecipientLiquidity.unclaimedAmount = feeConfig.unclaimedFeeLiquidity.toNumber();
         _feeRecipientMarketing.unclaimedAmount = feeConfig.unclaimedFeeMarketing.toNumber();
         _feeRecipientHolders.unclaimedAmount = feeConfig.unclaimedFeeHolders.toNumber();
+
+        _feeRecipientLiquidity.tokenAccount = feeConfig.liquidityTokenAccount.toBase58();
+        _feeRecipientMarketing.tokenAccount = feeConfig.marketingTokenAccount.toBase58();
+        _feeRecipientHolders.tokenAccount = feeConfig.holdersTokenAccount.toBase58();
 
         // TODO: need to pass decimals as a param
         _feeRecipientLiquidity.claimedAmount = bigintToNumber(

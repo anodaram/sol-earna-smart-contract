@@ -3,6 +3,7 @@ import { AnchorWallet, Wallet, useAnchorWallet, useConnection } from '@solana/wa
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   ExtensionType,
+  Mint,
   TOKEN_2022_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
   createInitializeMintInstruction,
@@ -11,6 +12,7 @@ import {
   getAccount,
   getAssociatedTokenAddress,
   getAssociatedTokenAddressSync,
+  getMint,
   getMintLen,
 } from '@solana/spl-token';
 import { PublicKey, SystemProgram, Transaction, Keypair, Signer, sendAndConfirmTransaction } from '@solana/web3.js';
@@ -19,18 +21,23 @@ import { useSolEarnaObj } from './common';
 import { Idl, Program } from '@project-serum/anchor';
 import { WalletAdapterProps } from '@solana/wallet-adapter-base';
 import { getFeeConfigPDA, getExtraAccountMetaListPDA } from './pdas';
+import { mintAddress } from './common';
 
-export const useProgramStatus = () => {
+export const useTokenStatus = () => {
   const { connection } = useConnection();
   const solEarnaObj = useSolEarnaObj();
+  const [tokenStatus, setTokenStatus] = useState<Mint>();
 
   useEffect(() => {
     if (solEarnaObj) {
-      (async () => {})();
+      (async () => {
+        const mint = await getMint(connection, mintAddress, 'processed', TOKEN_2022_PROGRAM_ID);
+        setTokenStatus(mint);
+      })();
     }
   }, [solEarnaObj]);
 
-  return {};
+  return { tokenStatus };
 };
 
 // TODO: This function doesn't work for now. Error in Step.1

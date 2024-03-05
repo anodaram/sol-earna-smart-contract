@@ -16,6 +16,7 @@ export const createAssociatedTokenAccount = async (
   allowOwnerOffCurve = false,
   _mintAddress: PublicKey = mintAddress
 ) => {
+  console.log('createAssociatedTokenAccount Step 1');
   const userTokenAccount = getAssociatedTokenAddressSync(
     _mintAddress,
     userWalletAddress,
@@ -23,6 +24,7 @@ export const createAssociatedTokenAccount = async (
     TOKEN_2022_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID
   );
+  console.log('createAssociatedTokenAccount Step 2');
 
   const ix = createAssociatedTokenAccountInstruction(
     payer,
@@ -32,6 +34,7 @@ export const createAssociatedTokenAccount = async (
     TOKEN_2022_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID
   );
+  console.log('createAssociatedTokenAccount Step 3');
 
   const txSig = await sendTransaction(new Transaction().add(ix), connection, { skipPreflight: true });
 

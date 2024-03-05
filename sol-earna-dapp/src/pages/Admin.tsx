@@ -1,19 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Modal, Button, Table, TableHead, TableCell, TableRow, TableBody, TextField } from '@mui/material';
-import { createNewSolEarnaMint, useFeeRecipientWallets, TypeFeeRecipientWallet, createAssociatedTokenAccount } from '../instructions';
+import { createNewSolEarnaMint, useFeeRecipientWallets, TypeFeeRecipientWallet, createAssociatedTokenAccount, useTokenStatus } from '../instructions';
 import { useSolEarnaObj } from '../instructions/common';
 import { useAnchorWallet, useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 
 export function Admin() {
+  const { tokenStatus } = useTokenStatus();
   const { connection } = useConnection();
   const [reloadTag, setReloadTag] = useState(false);
   const solEarnaObj = useSolEarnaObj();
   const { publicKey, sendTransaction } = useWallet();
   const { feeRecipientLiquidity, feeRecipientMarketing, feeRecipientHolders } = useFeeRecipientWallets(reloadTag);
+  const [userWalletAddressStr, setUserWalletAddressStr] = useState('');
   const [userWalletAddress, setUserWalletAddress] = useState<PublicKey>();
   const [userTokenAccount, setUserTokenAccount] = useState<PublicKey>();
   const [error, setError] = useState(false);
+  const [admin, setAdmin] = useState<PublicKey>();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const mintAuthority = tokenStatus?.mintAuthority;
+    mintAuthority && setAdmin(mintAuthority);
+  }, [tokenStatus]);
+
+  useEffect(() => {
+    setIsAdmin(!(!admin || !publicKey || admin.toBase58() !== publicKey.toBase58()));
+  }, [admin, publicKey]);
 
   const createNewToken = async () => {
     if (!solEarnaObj) {
@@ -39,14 +52,13 @@ export function Admin() {
 
   const handleUserWalletAddressChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const inputAddress = event.target.value;
-    // Regular expression for validating Solana address
-    const solanaAddressRegex = /[1-9A-HJ-NP-Za-km-z]{32,44}/;
-    if (solanaAddressRegex.test(inputAddress)) {
+    if (PublicKey.isOnCurve(inputAddress)) {
+      setUserWalletAddress(new PublicKey(inputAddress));
       setError(false);
     } else {
       setError(true);
     }
-    setUserWalletAddress(new PublicKey(inputAddress));
+    setUserWalletAddressStr(inputAddress);
   };
 
   const callCreateAssociatedTokenAccount = async () => {
@@ -58,6 +70,7 @@ export function Admin() {
       window.alert("Invalid User Wallet Address");
       return;
     }
+    console.log({ publicKey: publicKey.toBase58(), userWalletAddress: userWalletAddress.toBase58() });
     const userTokenAccount = await createAssociatedTokenAccount(
       connection, publicKey, sendTransaction, userWalletAddress
     );
@@ -69,57 +82,89 @@ export function Admin() {
       <Button color="inherit" onClick={createNewToken} disabled>
         Create a new token
       </Button>
-
-      <Table color="inherit">
-        <TableHead>
-          <TableRow>
-            <TableCell></TableCell>
-            <TableCell>Recipient Wallet Address</TableCell>
-            <TableCell>Claimed Amount</TableCell>
-            <TableCell>Unclaimed Amount</TableCell>
-            <TableCell></TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {
-            [
-              { label: "Liquidity", wallet: feeRecipientLiquidity },
-              { label: "Marketing", wallet: feeRecipientMarketing },
-              { label: "Holders", wallet: feeRecipientHolders }
-            ].map(({ label, wallet }) => (
-              <TableRow key={label}>
-                <TableCell>{label}</TableCell>
-                <TableCell>{wallet?.address}</TableCell>
-                <TableCell>{wallet?.claimedAmount}</TableCell>
-                <TableCell>{wallet?.unclaimedAmount}</TableCell>
-                <TableCell>
-                  <Button variant="contained" onClick={async () => {
-                    if (wallet) {
-                      await (wallet?.claim)();
-                      setReloadTag((prev) => !prev);
-                    }
-                  }}>Claim</Button>
-                </TableCell>
+      {!isAdmin ? (<Box>You are not admin</Box>) :
+        (<Box>
+          <Table color="inherit">
+            <TableHead>
+              <TableRow>
+                <TableCell></TableCell>
+                <TableCell>Recipient Wallet Address</TableCell>
+                <TableCell>Recipient Token Account</TableCell>
+                <TableCell>Claimed Amount</TableCell>
+                <TableCell>Unclaimed Amount</TableCell>
+                <TableCell></TableCell>
               </TableRow>
-            ))
-          }
-        </TableBody>
-      </Table>
+            </TableHead>
+            <TableBody>
+              <TableRow>
+                <TableCell>Admin</TableCell>
+                <TableCell>{admin?.toBase58()}</TableCell>
+                <TableCell></TableCell>
+                <TableCell></TableCell>
+                <TableCell></TableCell>
+                <TableCell></TableCell>
+              </TableRow>
+              {
+                [
+                  { label: "Liquidity", wallet: feeRecipientLiquidity },
+                  { label: "Marketing", wallet: feeRecipientMarketing },
+                  { label: "Holders", wallet: feeRecipientHolders }
+                ].map(({ label, wallet }) => (
+                  <TableRow key={label}>
+                    <TableCell>{label}</TableCell>
+                    <TableCell>{wallet?.address}</TableCell>
+                    <TableCell>{wallet?.tokenAccount}</TableCell>
+                    <TableCell>{wallet?.claimedAmount}</TableCell>
+                    <TableCell>{wallet?.unclaimedAmount}</TableCell>
+                    <TableCell>
+                      <Button variant="contained" onClick={async () => {
+                        if (wallet) {
+                          await (wallet?.claim)();
+                          setReloadTag((prev) => !prev);
+                        }
+                      }}>Claim</Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              }
+            </TableBody>
+          </Table>
 
-      <Box>
-        <h4>Create Associated Token Account</h4>
-        <TextField
-          label="User Wallet Address"
-          variant="outlined"
-          value={userWalletAddress}
-          onChange={handleUserWalletAddressChange}
-          error={error}
-          helperText={error ? 'Invalid Solana address format' : ''}
-          sx={{ width: '450px' }}
-        />
-        <Button onClick={callCreateAssociatedTokenAccount}>Create</Button>
-        <span>User Token Account: {userTokenAccount?.toBase58()}</span>
-      </Box>
+          <Box>
+            <h4>Create Associated Token Account</h4>
+            <TextField
+              id="user-wallet-address"
+              name="user-wallet-address"
+              label="User Wallet Address"
+              variant="outlined"
+              value={userWalletAddressStr}
+              onChange={handleUserWalletAddressChange}
+              error={error}
+              helperText={error ? 'Invalid Solana address format' : ''}
+              sx={{ width: '450px' }}
+            />
+            <Button onClick={callCreateAssociatedTokenAccount}>Create</Button>
+            <span>User Token Account: {userTokenAccount?.toBase58()}</span>
+          </Box>
+
+          <Box>
+            <h4>Mint Token To A User</h4>
+            {/* <TextField
+              id="user-wallet-address"
+              name="user-wallet-address"
+              label="User Wallet Address"
+              variant="outlined"
+              value={userWalletAddressStr}
+              onChange={handleUserWalletAddressChange}
+              error={error}
+              helperText={error ? 'Invalid Solana address format' : ''}
+              sx={{ width: '450px' }}
+            />
+            <Button onClick={callCreateAssociatedTokenAccount}>Create</Button>
+            <span>User Token Account: {userTokenAccount?.toBase58()}</span> */}
+          </Box>
+        </Box>)
+      }
     </Box>
   );
 }
