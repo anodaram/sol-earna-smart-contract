@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Modal, Button, Table, TableHead, TableCell, TableRow, TableBody, TextField } from '@mui/material';
-import { createNewSolEarnaMint, useFeeRecipientWallets, TypeFeeRecipientWallet, createAssociatedTokenAccount, useTokenStatus } from '../instructions';
-import { useSolEarnaObj } from '../instructions/common';
-import { useAnchorWallet, useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
+
+import { createNewSolEarnaMint, useFeeRecipientWallets, createAssociatedTokenAccount, useTokenStatus, mintTokenTo } from '../instructions';
+import { useSolEarnaObj } from '../instructions/common';
+
+import { AddressInput } from '../components';
 
 export function Admin() {
   const { tokenStatus } = useTokenStatus();
@@ -12,12 +15,11 @@ export function Admin() {
   const solEarnaObj = useSolEarnaObj();
   const { publicKey, sendTransaction } = useWallet();
   const { feeRecipientLiquidity, feeRecipientMarketing, feeRecipientHolders } = useFeeRecipientWallets(reloadTag);
-  const [userWalletAddressStr, setUserWalletAddressStr] = useState('');
-  const [userWalletAddress, setUserWalletAddress] = useState<PublicKey>();
-  const [userTokenAccount, setUserTokenAccount] = useState<PublicKey>();
-  const [error, setError] = useState(false);
   const [admin, setAdmin] = useState<PublicKey>();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userWalletAddress, setUserWalletAddress] = useState<PublicKey>();
+  const [userTokenAccount, setUserTokenAccount] = useState<PublicKey>();
+  const [mintAmount, setMintAmount] = useState('0');
 
   useEffect(() => {
     const mintAuthority = tokenStatus?.mintAuthority;
@@ -34,7 +36,7 @@ export function Admin() {
       return;
     }
     if (!publicKey) {
-      console.log("wallet not connected");
+      window.alert("Wallet Not Connected");
       return;
     }
     const feePercentHolders = 0.05;
@@ -50,17 +52,6 @@ export function Admin() {
     );
   }
 
-  const handleUserWalletAddressChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const inputAddress = event.target.value;
-    if (PublicKey.isOnCurve(inputAddress)) {
-      setUserWalletAddress(new PublicKey(inputAddress));
-      setError(false);
-    } else {
-      setError(true);
-    }
-    setUserWalletAddressStr(inputAddress);
-  };
-
   const callCreateAssociatedTokenAccount = async () => {
     if (!publicKey) {
       window.alert("Wallet Not Connected");
@@ -70,11 +61,28 @@ export function Admin() {
       window.alert("Invalid User Wallet Address");
       return;
     }
-    console.log({ publicKey: publicKey.toBase58(), userWalletAddress: userWalletAddress.toBase58() });
     const userTokenAccount = await createAssociatedTokenAccount(
       connection, publicKey, sendTransaction, userWalletAddress
     );
     setUserTokenAccount(userTokenAccount);
+  }
+
+  const callMintTo = async () => {
+    if (!publicKey) {
+      window.alert("Wallet Not Connected");
+      return;
+    }
+    if (!userTokenAccount) {
+      window.alert("Invalid User Token Account");
+      return;
+    }
+    mintTokenTo(
+      connection,
+      publicKey,
+      sendTransaction,
+      userTokenAccount,
+      Number(mintAmount)
+    );
   }
 
   return (
@@ -132,36 +140,23 @@ export function Admin() {
 
           <Box>
             <h4>Create Associated Token Account</h4>
-            <TextField
-              id="user-wallet-address"
-              name="user-wallet-address"
-              label="User Wallet Address"
-              variant="outlined"
-              value={userWalletAddressStr}
-              onChange={handleUserWalletAddressChange}
-              error={error}
-              helperText={error ? 'Invalid Solana address format' : ''}
-              sx={{ width: '450px' }}
-            />
+            <AddressInput label="User Wallet Address" onChange={(address) => setUserWalletAddress(address)} />
             <Button onClick={callCreateAssociatedTokenAccount}>Create</Button>
             <span>User Token Account: {userTokenAccount?.toBase58()}</span>
           </Box>
 
           <Box>
             <h4>Mint Token To A User</h4>
-            {/* <TextField
-              id="user-wallet-address"
-              name="user-wallet-address"
-              label="User Wallet Address"
+            <AddressInput label="User Token Account" onChange={(address) => setUserTokenAccount(address)} />
+            <TextField
+              label="Amount"
               variant="outlined"
-              value={userWalletAddressStr}
-              onChange={handleUserWalletAddressChange}
-              error={error}
-              helperText={error ? 'Invalid Solana address format' : ''}
-              sx={{ width: '450px' }}
+              value={mintAmount}
+              onChange={(e) => { setMintAmount(e.target.value) }}
+              type="number"
+              sx={{ width: '100px' }}
             />
-            <Button onClick={callCreateAssociatedTokenAccount}>Create</Button>
-            <span>User Token Account: {userTokenAccount?.toBase58()}</span> */}
+            <Button onClick={callMintTo}>Mint</Button>
           </Box>
         </Box>)
       }

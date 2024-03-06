@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
-import { TOKEN_2022_PROGRAM_ID, getAccount, getAssociatedTokenAddress } from '@solana/spl-token';
+import { useAnchorWallet, useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAccount, getAssociatedTokenAddress, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { PublicKey, Keypair } from '@solana/web3.js';
 import { BN } from '@project-serum/anchor';
 
-import { useSolEarnaObj } from './common';
+import { mintAddress, useSolEarnaObj } from './common';
 import { getFeeConfigPDA } from './pdas';
 import { bigintToNumber } from './utils';
 
@@ -13,19 +13,31 @@ const SECRET_KEY_MARKETING = process.env.REACT_APP_SECRET_KEY_MARKETING as strin
 const SECRET_KEY_HOLDERS = process.env.REACT_APP_SECRET_KEY_HOLDERS as string;
 
 export const useUserInfo = () => {
+  const { publicKey } = useWallet();
   const { connection } = useConnection();
   const solEarnaObj = useSolEarnaObj();
+  const [userTokenAccount, setUserTokenAccount] = useState<PublicKey>();
   const [userTokenBalance, setUserTokenBalance] = useState(0);
-  const wallet = useAnchorWallet();
 
   useEffect(() => {
     (async () => {
-      // const _userTokenAccount = await getAssociatedTokenAddress()
-      // const _userTokenBalance = await getAccount(connection, solEarnaObj?.publicKey as PublicKey)?.amount; await
+      if (!publicKey) return;
+      const _userTokenAccount = getAssociatedTokenAddressSync(
+        mintAddress,
+        publicKey,
+        false,
+        TOKEN_2022_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+      setUserTokenAccount(_userTokenAccount);
+      const _userTokenBalance = bigintToNumber(
+        (await getAccount(connection, _userTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount
+      );
+      setUserTokenBalance(_userTokenBalance);
     })();
-  }, [solEarnaObj, wallet]);
+  }, [solEarnaObj, publicKey]);
 
-  return { userTokenBalance };
+  return { userTokenBalance, userTokenAccount };
 };
 
 export type TypeFeeConfig = {
