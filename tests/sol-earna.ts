@@ -100,7 +100,7 @@ describe("sol-earna", () => {
   const holdersTokenAccount = getAssociatedTokenAddressSync(
     mint.publicKey,
     feeRecipientHolders.publicKey,
-    true,
+    false,
     TOKEN_2022_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID
   );
