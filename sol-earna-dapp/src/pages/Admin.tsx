@@ -3,7 +3,7 @@ import { Box, Modal, Button, Table, TableHead, TableCell, TableRow, TableBody, T
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 
-import { createNewSolEarnaMint, useFeeRecipientWallets, createAssociatedTokenAccount, useTokenStatus, mintTokenTo } from '../instructions';
+import { createNewSolEarnaMint, useFeeRecipientWallets, createAssociatedTokenAccount, useTokenStatus, mintTokenTo, useHolders } from '../instructions';
 import { useSolEarnaObj } from '../instructions/common';
 
 import { AddressInput } from '../components';
@@ -13,6 +13,7 @@ export function Admin() {
   const { connection } = useConnection();
   const { tokenStatus, admin } = useTokenStatus();
   const solEarnaObj = useSolEarnaObj();
+  const holders = useHolders();
   const { publicKey, sendTransaction } = useWallet();
   const { feeStorage, feeRecipientLiquidity, feeRecipientMarketing, feeRecipientHolders } = useFeeRecipientWallets(reloadTag);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -124,6 +125,27 @@ export function Admin() {
               }
             </TableBody>
           </Table>
+          <Box>
+            <h4>Holders</h4>
+            <Table>
+              <TableHead>
+                <TableCell>User</TableCell>
+                <TableCell>Token Account</TableCell>
+                <TableCell>Holding Amount</TableCell>
+                <TableCell>Holding Percentage</TableCell>
+              </TableHead>
+              <TableBody>
+                {
+                  holders.map(holder => (<TableRow>
+                    <TableCell>{holder.address}</TableCell>
+                    <TableCell>{holder.tokenAccount}</TableCell>
+                    <TableCell>{holder.amount}</TableCell>
+                    <TableCell>{(holder.shared * 100).toFixed(2)}{" %"}</TableCell>
+                  </TableRow>))
+                }
+              </TableBody>
+            </Table>
+          </Box>
 
           <Box>
             <h4>Create Associated Token Account</h4>

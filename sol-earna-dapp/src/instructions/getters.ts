@@ -6,8 +6,9 @@ import {
   getAccount,
   getAssociatedTokenAddress,
   getAssociatedTokenAddressSync,
+  unpackAccount,
 } from '@solana/spl-token';
-import { PublicKey, Keypair } from '@solana/web3.js';
+import { PublicKey, Keypair, ParsedAccountData, Connection } from '@solana/web3.js';
 import { BN } from '@project-serum/anchor';
 
 import { mintAddress, useSolEarnaObj } from './common';
@@ -156,7 +157,7 @@ export const useFeeRecipientWallets = (reloadTag: Boolean = false) => {
             feeStorageTokenAccount
           );
         };
-        [_feeRecipientLiquidity, _feeRecipientMarketing, _feeRecipientHolders].forEach((_feeRecipient) => {
+        [_feeRecipientLiquidity, _feeRecipientMarketing].forEach((_feeRecipient) => {
           _feeRecipient.claim = async () => {
             await claimFee(
               connection, // connection: Connection,
@@ -172,6 +173,28 @@ export const useFeeRecipientWallets = (reloadTag: Boolean = false) => {
             );
           };
         });
+        _feeRecipientHolders.claim = async () => {
+          const holders = await getHolders(connection, admin);
+          const total = _feeRecipientHolders.unclaimedAmount;
+          for (let i = 0; i < holders.length; i++) {
+            const _holder = holders[i];
+            const amount = total * _holder.shared;
+            if (_holder.shared > 0) {
+              await claimFee(
+                connection, // connection: Connection,
+                admin, // admin: PublicKey,
+                sendTransaction, // sendTransaction: WalletAdapterProps['sendTransaction'],
+                solEarnaObj, // solEarnaObj: Program<Idl>,
+                mintAddress, // mintAddress: PublicKey,
+                feeConfigPDA, // feeConfigPDA: PublicKey,
+                feeStorageTokenAccount, // feeStorageTokenAccount: PublicKey,
+                new PublicKey(_holder.address), // feeRecipientAddress: PublicKey,
+                new PublicKey(_holder.tokenAccount), // feeRecipientTokenAccount: PublicKey,
+                numberToBN(amount) // amount: BN,
+              );
+            }
+          }
+        };
 
         setFeeStorage(_feeStorage);
         setFeeRecipientLiquidity(_feeRecipientLiquidity);
@@ -187,4 +210,76 @@ export const useFeeRecipientWallets = (reloadTag: Boolean = false) => {
     feeRecipientMarketing,
     feeRecipientHolders,
   };
+};
+
+export type TypeHolder = {
+  address: string;
+  tokenAccount: string;
+  amount: number;
+  shared: number;
+};
+
+export const useHolders = () => {
+  const [holders, setHolders] = useState<TypeHolder[]>([]);
+  const { connection } = useConnection();
+  const { admin } = useTokenStatus();
+
+  useEffect(() => {
+    (async () => {
+      if (!admin) return;
+      const _holders = await getHolders(connection, admin);
+      setHolders(_holders);
+    })();
+  }, [connection, admin]);
+
+  return holders;
+};
+
+const getHolders = async (connection: Connection, admin: PublicKey) => {
+  const allAccounts = await connection.getProgramAccounts(TOKEN_2022_PROGRAM_ID, {
+    commitment: 'confirmed',
+    filters: [
+      {
+        memcmp: {
+          offset: 0,
+          bytes: mintAddress.toString(), // Mint Account address
+        },
+      },
+    ],
+  });
+  console.log({ allAccounts });
+  const exceptionWallets = [
+    admin,
+    Keypair.fromSecretKey(new Uint8Array(JSON.parse(SECRET_KEY_LIQUIDITY))).publicKey,
+    Keypair.fromSecretKey(new Uint8Array(JSON.parse(SECRET_KEY_MARKETING))).publicKey,
+    Keypair.fromSecretKey(new Uint8Array(JSON.parse(SECRET_KEY_HOLDERS))).publicKey,
+  ].map((wallet) => wallet.toBase58());
+
+  const validHolders = allAccounts.filter((account) => !exceptionWallets.includes(account.account.owner.toBase58()));
+  const holders = (
+    await Promise.all(
+      validHolders.map(async (accountInfo) => {
+        const tokenAccount = accountInfo.pubkey;
+        const parsedAccountInfo = await connection.getParsedAccountInfo(tokenAccount);
+        const address = (parsedAccountInfo.value?.data as ParsedAccountData).parsed.info.owner;
+        const amount = bigintToNumber(
+          (await getAccount(connection, tokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount
+        );
+        const shared = 0;
+        return {
+          address,
+          tokenAccount: tokenAccount.toBase58(),
+          amount,
+          shared,
+        };
+      })
+    )
+  ).filter((holder) => holder.amount > 0 && !exceptionWallets.includes(holder.address));
+  const totalSupply = holders.reduce((acc, holder) => acc + holder.amount, 0);
+  if (totalSupply > 0) {
+    holders.map((holder) => {
+      holder.shared = holder.amount / totalSupply;
+    });
+  }
+  return holders;
 };

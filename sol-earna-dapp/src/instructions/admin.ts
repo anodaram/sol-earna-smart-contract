@@ -280,31 +280,18 @@ export const claimFee = async (
   amount: BN,
   decimals: number = 9
 ) => {
-  // const transferInstruction = await createTransferCheckedWithTransferHookInstruction(
-  //   connection,
-  //   feeStorageTokenAccount,
-  //   mintAddress,
-  //   feeRecipientTokenAccount,
-  //   admin,
-  //   BigInt(amount.toString()),
-  //   decimals,
-  //   [],
-  //   "confirmed",
-  //   TOKEN_2022_PROGRAM_ID
-  // );
-
-  // const txSig1 = await sendTransaction(new Transaction().add(transferInstruction), connection, { skipPreflight: true });
-  // console.log("Transfer Signature:", txSig1);
-
-  console.log({amount}, {
-    owner: admin.toBase58(), // owner
-    user: feeRecipientAddress.toBase58(), // user
-    destinationToken: feeRecipientTokenAccount.toBase58(), // destination_token
-    mint: mintAddress.toBase58(), // mint
-    tokenProgram: TOKEN_2022_PROGRAM_ID.toBase58(), // token_program
-    feeConfig: feeConfigPDA.toBase58(), // fee_config
-    feeStorageTokenAccount: feeStorageTokenAccount.toBase58() // fee_storage_token_account
-  });
+  const transferInstruction = await createTransferCheckedWithTransferHookInstruction(
+    connection,
+    feeStorageTokenAccount,
+    mintAddress,
+    feeRecipientTokenAccount,
+    admin,
+    BigInt(amount.toString()),
+    decimals,
+    [],
+    "confirmed",
+    TOKEN_2022_PROGRAM_ID
+  );
   const feeClaimedInstruction = await solEarnaObj.methods.feeClaimed(amount).accounts({
     owner: admin, // owner
     user: feeRecipientAddress, // user
@@ -316,9 +303,9 @@ export const claimFee = async (
   }).instruction();
   console.log({feeClaimedInstruction});
 
-  const txSig2 = await sendTransaction(new Transaction().add(feeClaimedInstruction), connection, {
+  const txSig = await sendTransaction(new Transaction().add(transferInstruction, feeClaimedInstruction), connection, {
     skipPreflight: true,
   });
 
-  console.log("Transfer Signature:", txSig2);
+  console.log("Transfer Signature:", txSig);
 }
