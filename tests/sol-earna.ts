@@ -38,8 +38,7 @@ import assert from "assert";
 
 import {
   EXTRA_ACCOUNT_METAS_TAG,
-  FEE_CONFIG_TAG,
-  FEE_RECIPIENT_HOLDERS_TAG
+  FEE_CONFIG_TAG
 } from "./constants";
 
 const PUT_LOG = false;
@@ -56,6 +55,8 @@ describe("sol-earna", () => {
   // Generate keypair to use as address for the transfer-hook enabled mint
   const mint = new Keypair();
   const decimals = 9;
+
+  console.log({mint: mint.publicKey.toBase58()});
 
   const feeRecipientLiquidity = Keypair.generate();
   const feeRecipientMarketing = Keypair.generate();
