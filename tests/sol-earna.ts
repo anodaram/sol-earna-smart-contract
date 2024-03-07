@@ -59,6 +59,7 @@ describe("sol-earna", () => {
 
   const feeRecipientLiquidity = Keypair.generate();
   const feeRecipientMarketing = Keypair.generate();
+  const feeRecipientHolders = Keypair.generate();
 
   // PUT_LOG && console.log(feeRecipientLiquidity.secretKey);
   // PUT_LOG && console.log(feeRecipientMarketing.secretKey);
@@ -80,11 +81,6 @@ describe("sol-earna", () => {
     program.programId
   );
 
-  const [feeRecipientHoldersPDA] = PublicKey.findProgramAddressSync(
-    [FEE_RECIPIENT_HOLDERS_TAG, mint.publicKey.toBuffer()],
-    program.programId
-  );
-
   const liquidityTokenAccount = getAssociatedTokenAddressSync(
     mint.publicKey,
     feeRecipientLiquidity.publicKey,
@@ -103,7 +99,7 @@ describe("sol-earna", () => {
 
   const holdersTokenAccount = getAssociatedTokenAddressSync(
     mint.publicKey,
-    feeRecipientHoldersPDA,
+    feeRecipientHolders.publicKey,
     true,
     TOKEN_2022_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID
@@ -221,7 +217,7 @@ describe("sol-earna", () => {
       createAssociatedTokenAccountInstruction(
         wallet.publicKey,
         holdersTokenAccount,
-        feeRecipientHoldersPDA,
+        feeRecipientHolders.publicKey,
         mint.publicKey,
         TOKEN_2022_PROGRAM_ID,
         ASSOCIATED_TOKEN_PROGRAM_ID
