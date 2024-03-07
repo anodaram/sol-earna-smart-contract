@@ -150,6 +150,9 @@ pub mod sol_earna {
             fee_config.fee_not_collected = 0;
         } else {
             fee_config.fee_not_collected -= amount;
+            if fee_config.fee_not_collected < DUST_LIMIT {
+                fee_config.fee_not_collected = 0;
+            }
         }
         fee_config.fee_collected += amount;
 
@@ -197,60 +200,6 @@ pub mod sol_earna {
                 _amount = cmp::min(fee_config.fee_collected, fee_config.unclaimed_fee_marketing);
                 msg!("Claim Amount is too big, need to reduce to {:?}", _amount);
             }
-            if _amount > 0 {
-                solana_program::program::invoke_signed(
-                    &withdraw_withheld_tokens_from_accounts(
-                        &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
-                        &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
-                        &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
-                        &ctx.accounts.owner.to_account_info().key(), // authority: &Pubkey,
-                        &[],                                         // signers: &[&Pubkey],
-                        &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
-                    )?,
-                    &[
-                        ctx.accounts.token_program.to_account_info(),
-                        ctx.accounts.mint.to_account_info(),
-                        ctx.accounts.destination_token.to_account_info(),
-                        ctx.accounts.owner.to_account_info(),
-                    ],
-                    &[],
-                )?;
-
-                fee_config.unclaimed_fee_marketing -= _amount;
-                fee_config.fee_collected -= _amount;
-            }
-        } else if destination_token_account == fee_config.liquidity_token_account {
-            msg!("Claim for liquidity");
-            let mut _amount = amount;
-            if _amount > cmp::min(fee_config.fee_collected, fee_config.unclaimed_fee_liquidity) {
-                _amount = cmp::min(fee_config.fee_collected, fee_config.unclaimed_fee_liquidity);
-                msg!("Claim Amount is too big, need to reduce to {:?}", _amount);
-            }
-
-            if _amount > 0 {
-                solana_program::program::invoke_signed(
-                    &withdraw_withheld_tokens_from_accounts(
-                        &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
-                        &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
-                        &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
-                        &ctx.accounts.owner.to_account_info().key(), // authority: &Pubkey,
-                        &[],                                         // signers: &[&Pubkey],
-                        &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
-                    )?,
-                    &[
-                        ctx.accounts.token_program.to_account_info(),
-                        ctx.accounts.mint.to_account_info(),
-                        ctx.accounts.destination_token.to_account_info(),
-                        ctx.accounts.owner.to_account_info(),
-                    ],
-                    &[],
-                )?;
-
-                fee_config.unclaimed_fee_liquidity -= _amount;
-                fee_config.fee_collected -= _amount;
-            }
-        } else {
-            msg!("Claim for holder");
             solana_program::program::invoke_signed(
                 &withdraw_withheld_tokens_from_accounts(
                     &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
@@ -268,6 +217,86 @@ pub mod sol_earna {
                 ],
                 &[],
             )?;
+
+            if _amount > 0 {
+                fee_config.unclaimed_fee_marketing -= _amount;
+                fee_config.fee_collected -= _amount;
+                if fee_config.unclaimed_fee_marketing < DUST_LIMIT {
+                    fee_config.unclaimed_fee_marketing = 0;
+                }
+                if fee_config.fee_collected < DUST_LIMIT {
+                    fee_config.fee_collected = 0;
+                }
+            }
+        } else if destination_token_account == fee_config.liquidity_token_account {
+            msg!("Claim for liquidity");
+            let mut _amount = amount;
+            if _amount > cmp::min(fee_config.fee_collected, fee_config.unclaimed_fee_liquidity) {
+                _amount = cmp::min(fee_config.fee_collected, fee_config.unclaimed_fee_liquidity);
+                msg!("Claim Amount is too big, need to reduce to {:?}", _amount);
+            }
+            solana_program::program::invoke_signed(
+                &withdraw_withheld_tokens_from_accounts(
+                    &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
+                    &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
+                    &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
+                    &ctx.accounts.owner.to_account_info().key(),             // authority: &Pubkey,
+                    &[],                                                     // signers: &[&Pubkey],
+                    &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
+                )?,
+                &[
+                    ctx.accounts.token_program.to_account_info(),
+                    ctx.accounts.mint.to_account_info(),
+                    ctx.accounts.destination_token.to_account_info(),
+                    ctx.accounts.owner.to_account_info(),
+                ],
+                &[],
+            )?;
+
+            if _amount > 0 {
+                fee_config.unclaimed_fee_liquidity -= _amount;
+                fee_config.fee_collected -= _amount;
+                if fee_config.unclaimed_fee_liquidity < DUST_LIMIT {
+                    fee_config.unclaimed_fee_liquidity = 0;
+                }
+                if fee_config.fee_collected < DUST_LIMIT {
+                    fee_config.fee_collected = 0;
+                }
+            }
+        } else {
+            msg!("Claim for holder");
+            let mut _amount = amount;
+            if _amount > cmp::min(fee_config.fee_collected, fee_config.unclaimed_fee_holders) {
+                _amount = cmp::min(fee_config.fee_collected, fee_config.unclaimed_fee_holders);
+                msg!("Claim Amount is too big, need to reduce to {:?}", _amount);
+            }
+            solana_program::program::invoke_signed(
+                &withdraw_withheld_tokens_from_accounts(
+                    &ctx.accounts.token_program.to_account_info().key(), // token_program_id:
+                    &ctx.accounts.mint.to_account_info().key(),          // mint: &Pubkey,
+                    &ctx.accounts.destination_token.to_account_info().key(), // destination: &Pubkey,
+                    &ctx.accounts.owner.to_account_info().key(),             // authority: &Pubkey,
+                    &[],                                                     // signers: &[&Pubkey],
+                    &[&ctx.accounts.destination_token.to_account_info().key()], // sources: &[&Pubkey],
+                )?,
+                &[
+                    ctx.accounts.token_program.to_account_info(),
+                    ctx.accounts.mint.to_account_info(),
+                    ctx.accounts.destination_token.to_account_info(),
+                    ctx.accounts.owner.to_account_info(),
+                ],
+                &[],
+            )?;
+            if _amount > 0 {
+                fee_config.unclaimed_fee_holders -= _amount;
+                fee_config.fee_collected -= _amount;
+                if fee_config.unclaimed_fee_holders < DUST_LIMIT {
+                    fee_config.unclaimed_fee_holders = 0;
+                }
+                if fee_config.fee_collected < DUST_LIMIT {
+                    fee_config.fee_collected = 0;
+                }
+            }
         }
         Ok(())
     }
