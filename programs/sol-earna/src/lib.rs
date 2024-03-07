@@ -7,7 +7,7 @@ use spl_tlv_account_resolution::{account::ExtraAccountMeta, state::ExtraAccountM
 use spl_transfer_hook_interface::instruction::{ExecuteInstruction, TransferHookInstruction};
 use std::cmp;
 
-declare_id!("xnwVapsgETFh2cz8LFPfTyneACVaMtxbR7D7KeFH3K8");
+declare_id!("6pkLsRGjcnR8Vr8PP7uEDXtkipkUcUoj3xLSQqGCCxDD");
 
 pub mod constants;
 pub mod contexts;
@@ -193,6 +193,10 @@ pub mod sol_earna {
 
         let fee_config = &mut ctx.accounts.fee_config;
 
+        let total_fee_percent = fee_config.fee_percent_holders
+            + fee_config.fee_percent_liquidity
+            + fee_config.fee_percent_marketing;
+
         if destination_token_account == fee_config.marketing_token_account {
             msg!("Claim for marketing");
             let mut _amount = amount;
@@ -227,6 +231,8 @@ pub mod sol_earna {
                 if fee_config.fee_collected < DUST_LIMIT {
                     fee_config.fee_collected = 0;
                 }
+                let total_fee: u64 = cmp::min(_amount * total_fee_percent as u64 / 10000, fee_config.fee_not_collected);
+                fee_config.fee_not_collected -= total_fee;
             }
         } else if destination_token_account == fee_config.liquidity_token_account {
             msg!("Claim for liquidity");
@@ -262,6 +268,8 @@ pub mod sol_earna {
                 if fee_config.fee_collected < DUST_LIMIT {
                     fee_config.fee_collected = 0;
                 }
+                let total_fee: u64 = cmp::min(_amount * total_fee_percent as u64 / 10000, fee_config.fee_not_collected);
+                fee_config.fee_not_collected -= total_fee;
             }
         } else {
             msg!("Claim for holder");
@@ -296,8 +304,11 @@ pub mod sol_earna {
                 if fee_config.fee_collected < DUST_LIMIT {
                     fee_config.fee_collected = 0;
                 }
+                let total_fee: u64 = cmp::min(_amount * total_fee_percent as u64 / 10000, fee_config.fee_not_collected);
+                fee_config.fee_not_collected -= total_fee;
             }
         }
+
         Ok(())
     }
 

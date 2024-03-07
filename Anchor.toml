@@ -8,7 +8,7 @@ skip-lint = false
 sol_earna = "xnwVapsgETFh2cz8LFPfTyneACVaMtxbR7D7KeFH3K8"
 
 [programs.devnet]
-sol_earna = "CPRsk9UHuBq5w513toPsvxfVMqnk7BfsnFadtkJ9Jf7a"
+sol_earna = "6pkLsRGjcnR8Vr8PP7uEDXtkipkUcUoj3xLSQqGCCxDD"
 
 [registry]
 url = "https://api.apr.dev"

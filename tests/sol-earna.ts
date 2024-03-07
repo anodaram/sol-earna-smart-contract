@@ -56,7 +56,7 @@ describe("sol-earna", () => {
   const mint = new Keypair();
   const decimals = 9;
 
-  console.log({mint: mint.publicKey.toBase58()});
+  console.log({ mint: mint.publicKey.toBase58() });
 
   const feeRecipientLiquidity = Keypair.generate();
   const feeRecipientMarketing = Keypair.generate();
@@ -178,7 +178,7 @@ describe("sol-earna", () => {
         name: metaData.name,
         symbol: metaData.symbol,
         uri: metaData.uri,
-      }),      
+      }),
       createUpdateFieldInstruction({
         programId: TOKEN_2022_PROGRAM_ID, // Token Extension Program as Metadata Program
         metadata: mint.publicKey, // Account address that holds the metadata
