@@ -24,7 +24,16 @@ import {
   createWithdrawWithheldTokensFromAccountsInstruction,
   getTransferFeeAmount,
   unpackAccount,
+  createInitializeMetadataPointerInstruction,
+  createInitializeInstruction,
+  createUpdateFieldInstruction,
+  TYPE_SIZE,
+  LENGTH_SIZE,
 } from "@solana/spl-token";
+import {
+  pack,
+  TokenMetadata
+} from "@solana/spl-token-metadata";
 import assert from "assert";
 
 import {
@@ -109,10 +118,24 @@ describe("sol-earna", () => {
   );
 
   it("Create Mint Account with Transfer Hook Extension", async () => {
-    const extensions = [ExtensionType.TransferFeeConfig, ExtensionType.TransferHook];
+    const metaData: TokenMetadata = {
+      updateAuthority: wallet.publicKey,
+      mint: mint.publicKey,
+      name: "Sol Earna",
+      symbol: "SolE",
+      uri: "",
+      additionalMetadata: [["description", "This is Sol Earna Token"]],
+    };
+
+    // Size of MetadataExtension 2 bytes for type, 2 bytes for length
+    const metadataExtension = TYPE_SIZE + LENGTH_SIZE;
+    // Size of metadata
+    const metadataLen = pack(metaData).length;
+
+    const extensions = [ExtensionType.TransferFeeConfig, ExtensionType.TransferHook, ExtensionType.MetadataPointer];
     const mintLen = getMintLen(extensions);
     const lamports =
-      await provider.connection.getMinimumBalanceForRentExemption(mintLen);
+      await provider.connection.getMinimumBalanceForRentExemption(mintLen + metadataExtension + metadataLen);
 
     const transaction = new Transaction().add(
       SystemProgram.createAccount({
@@ -136,13 +159,36 @@ describe("sol-earna", () => {
         BigInt(1_000_000_000),
         TOKEN_2022_PROGRAM_ID
       ),
+      createInitializeMetadataPointerInstruction(
+        mint.publicKey, // Mint Account address
+        wallet.publicKey, // Authority that can set the metadata address
+        mint.publicKey, // Account address that holds the metadata
+        TOKEN_2022_PROGRAM_ID
+      ),
       createInitializeMintInstruction(
         mint.publicKey,
         decimals,
         wallet.publicKey,
         null,
         TOKEN_2022_PROGRAM_ID
-      )
+      ),
+      createInitializeInstruction({
+        programId: TOKEN_2022_PROGRAM_ID, // Token Extension Program as Metadata Program
+        metadata: mint.publicKey, // Account address that holds the metadata
+        updateAuthority: wallet.publicKey, // Authority that can update the metadata
+        mint: mint.publicKey, // Mint Account address
+        mintAuthority: wallet.publicKey, // Designated Mint Authority
+        name: metaData.name,
+        symbol: metaData.symbol,
+        uri: metaData.uri,
+      }),      
+      createUpdateFieldInstruction({
+        programId: TOKEN_2022_PROGRAM_ID, // Token Extension Program as Metadata Program
+        metadata: mint.publicKey, // Account address that holds the metadata
+        updateAuthority: wallet.publicKey, // Authority that can update the metadata
+        field: metaData.additionalMetadata[0][0], // key
+        value: metaData.additionalMetadata[0][1], // value
+      })
     );
 
     const txSig = await sendAndConfirmTransaction(
