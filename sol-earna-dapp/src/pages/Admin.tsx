@@ -9,22 +9,16 @@ import { useSolEarnaObj } from '../instructions/common';
 import { AddressInput } from '../components';
 
 export function Admin() {
-  const { tokenStatus } = useTokenStatus();
-  const { connection } = useConnection();
   const [reloadTag, setReloadTag] = useState(false);
+  const { connection } = useConnection();
+  const { tokenStatus, admin } = useTokenStatus();
   const solEarnaObj = useSolEarnaObj();
   const { publicKey, sendTransaction } = useWallet();
-  const { feeRecipientLiquidity, feeRecipientMarketing, feeRecipientHolders } = useFeeRecipientWallets(reloadTag);
-  const [admin, setAdmin] = useState<PublicKey>();
+  const { feeStorage, feeRecipientLiquidity, feeRecipientMarketing, feeRecipientHolders } = useFeeRecipientWallets(reloadTag);
   const [isAdmin, setIsAdmin] = useState(false);
   const [userWalletAddress, setUserWalletAddress] = useState<PublicKey>();
   const [userTokenAccount, setUserTokenAccount] = useState<PublicKey>();
   const [mintAmount, setMintAmount] = useState('0');
-
-  useEffect(() => {
-    const mintAuthority = tokenStatus?.mintAuthority;
-    mintAuthority && setAdmin(mintAuthority);
-  }, [tokenStatus]);
 
   useEffect(() => {
     setIsAdmin(!(!admin || !publicKey || admin.toBase58() !== publicKey.toBase58()));
@@ -104,16 +98,9 @@ export function Admin() {
               </TableRow>
             </TableHead>
             <TableBody>
-              <TableRow>
-                <TableCell>Admin</TableCell>
-                <TableCell>{admin?.toBase58()}</TableCell>
-                <TableCell></TableCell>
-                <TableCell></TableCell>
-                <TableCell></TableCell>
-                <TableCell></TableCell>
-              </TableRow>
               {
                 [
+                  { label: "Admin", wallet: feeStorage },
                   { label: "Liquidity", wallet: feeRecipientLiquidity },
                   { label: "Marketing", wallet: feeRecipientMarketing },
                   { label: "Holders", wallet: feeRecipientHolders }
@@ -130,7 +117,7 @@ export function Admin() {
                           await (wallet?.claim)();
                           setReloadTag((prev) => !prev);
                         }
-                      }}>Claim</Button>
+                      }}>{label === "Admin" ? "Collect" : "Claim"}</Button>
                     </TableCell>
                   </TableRow>
                 ))

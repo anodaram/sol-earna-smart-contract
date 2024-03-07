@@ -9,16 +9,28 @@ import {
   createInitializeMintInstruction,
   createInitializeTransferFeeConfigInstruction,
   createInitializeTransferHookInstruction,
+  createTransferCheckedWithTransferHookInstruction,
+  createWithdrawWithheldTokensFromAccountsInstruction,
   getAccount,
   getAssociatedTokenAddress,
   getAssociatedTokenAddressSync,
   getMint,
   getMintLen,
+  getTransferFeeAmount,
+  unpackAccount,
 } from '@solana/spl-token';
-import { PublicKey, SystemProgram, Transaction, Keypair, Signer, sendAndConfirmTransaction } from '@solana/web3.js';
+import {
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  Keypair,
+  Signer,
+  sendAndConfirmTransaction,
+  Connection,
+} from '@solana/web3.js';
 
 import { useSolEarnaObj } from './common';
-import { Idl, Program } from '@project-serum/anchor';
+import { BN, Idl, Program } from '@project-serum/anchor';
 import { WalletAdapterProps } from '@solana/wallet-adapter-base';
 import { getFeeConfigPDA, getExtraAccountMetaListPDA } from './pdas';
 import { mintAddress } from './common';
@@ -27,17 +39,20 @@ export const useTokenStatus = () => {
   const { connection } = useConnection();
   const solEarnaObj = useSolEarnaObj();
   const [tokenStatus, setTokenStatus] = useState<Mint>();
+  const [admin, setAdmin] = useState<PublicKey>();
 
   useEffect(() => {
     if (solEarnaObj) {
       (async () => {
         const mint = await getMint(connection, mintAddress, 'processed', TOKEN_2022_PROGRAM_ID);
         setTokenStatus(mint);
+        const _admin = mint?.mintAuthority;
+        _admin && setAdmin(_admin);
       })();
     }
   }, [solEarnaObj]);
 
-  return { tokenStatus };
+  return { tokenStatus, admin };
 };
 
 // TODO: This function doesn't work for now. Error in Step.1
@@ -167,3 +182,143 @@ export const createNewSolEarnaMint = async (
 
   await sendTransaction(transaction3, solEarnaObj.provider.connection, { skipPreflight: true });
 };
+
+export const collectFee = async (
+  connection: Connection,
+  admin: PublicKey,
+  sendTransaction: WalletAdapterProps['sendTransaction'],
+  solEarnaObj: Program<Idl>,
+  mintAddress: PublicKey,
+  feeConfigPDA: PublicKey,
+  feeStorageTokenAccount: PublicKey
+) => {
+  const allAccounts = await connection.getProgramAccounts(TOKEN_2022_PROGRAM_ID, {
+    commitment: 'confirmed',
+    filters: [
+      {
+        memcmp: {
+          offset: 0,
+          bytes: mintAddress.toString(), // Mint Account address
+        },
+      },
+    ],
+  });
+  // List of Token Accounts to withdraw fees from
+  const accountsToWithdrawFrom = [];
+
+  for (const accountInfo of allAccounts) {
+    const account = unpackAccount(
+      accountInfo.pubkey, // Token Account address
+      accountInfo.account, // Token Account data
+      TOKEN_2022_PROGRAM_ID // Token Extension Program ID
+    );
+
+    // Extract transfer fee data from each account
+    const transferFeeAmount = getTransferFeeAmount(account);
+    console.log(accountInfo, transferFeeAmount);
+
+    // Check if fees are available to be withdrawn
+    if (transferFeeAmount !== null && transferFeeAmount.withheldAmount > 0) {
+      accountsToWithdrawFrom.push(accountInfo.pubkey); // Add account to withdrawal list
+    }
+  }
+  console.log({ accountsToWithdrawFrom });
+
+  const transferInstruction = createWithdrawWithheldTokensFromAccountsInstruction(
+    mintAddress,
+    feeStorageTokenAccount,
+    admin,
+    [],
+    accountsToWithdrawFrom,
+    TOKEN_2022_PROGRAM_ID
+  );
+
+  const balanceFeeStorageBefore = (
+    await getAccount(connection, feeStorageTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)
+  ).amount;
+
+  const txSig = await sendTransaction(new Transaction().add(transferInstruction), connection, { skipPreflight: true });
+
+  console.log('Transfer Signature:', txSig);
+
+  const balanceFeeStorageAfter = (
+    await getAccount(connection, feeStorageTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)
+  ).amount;
+
+  const collectedFee = balanceFeeStorageAfter - balanceFeeStorageBefore;
+  console.log({ collectedFee, balanceFeeStorageAfter, balanceFeeStorageBefore });
+
+  const feeCollectedInstruction = await solEarnaObj.methods
+    .feeCollected(new BN(collectedFee.toString()))
+    .accounts({
+      owner: admin,
+      mint: mintAddress,
+      tokenProgram: TOKEN_2022_PROGRAM_ID,
+      feeConfig: feeConfigPDA,
+      feeStorageTokenAccount: feeStorageTokenAccount,
+    })
+    .instruction();
+
+  const txSig2 = await sendTransaction(new Transaction().add(feeCollectedInstruction), connection, {
+    skipPreflight: true,
+  });
+  console.log('Transfer Signature2:', txSig2);
+
+  return collectedFee;
+};
+
+export const claimFee = async (
+  connection: Connection,
+  admin: PublicKey,
+  sendTransaction: WalletAdapterProps['sendTransaction'],
+  solEarnaObj: Program<Idl>,
+  mintAddress: PublicKey,
+  feeConfigPDA: PublicKey,
+  feeStorageTokenAccount: PublicKey,
+  feeRecipientAddress: PublicKey,
+  feeRecipientTokenAccount: PublicKey,
+  amount: BN,
+  decimals: number = 9
+) => {
+  // const transferInstruction = await createTransferCheckedWithTransferHookInstruction(
+  //   connection,
+  //   feeStorageTokenAccount,
+  //   mintAddress,
+  //   feeRecipientTokenAccount,
+  //   admin,
+  //   BigInt(amount.toString()),
+  //   decimals,
+  //   [],
+  //   "confirmed",
+  //   TOKEN_2022_PROGRAM_ID
+  // );
+
+  // const txSig1 = await sendTransaction(new Transaction().add(transferInstruction), connection, { skipPreflight: true });
+  // console.log("Transfer Signature:", txSig1);
+
+  console.log({amount}, {
+    owner: admin.toBase58(), // owner
+    user: feeRecipientAddress.toBase58(), // user
+    destinationToken: feeRecipientTokenAccount.toBase58(), // destination_token
+    mint: mintAddress.toBase58(), // mint
+    tokenProgram: TOKEN_2022_PROGRAM_ID.toBase58(), // token_program
+    feeConfig: feeConfigPDA.toBase58(), // fee_config
+    feeStorageTokenAccount: feeStorageTokenAccount.toBase58() // fee_storage_token_account
+  });
+  const feeClaimedInstruction = await solEarnaObj.methods.feeClaimed(amount).accounts({
+    owner: admin, // owner
+    user: feeRecipientAddress, // user
+    destinationToken: feeRecipientTokenAccount, // destination_token
+    mint: mintAddress, // mint
+    tokenProgram: TOKEN_2022_PROGRAM_ID, // token_program
+    feeConfig: feeConfigPDA, // fee_config
+    feeStorageTokenAccount: feeStorageTokenAccount // fee_storage_token_account
+  }).instruction();
+  console.log({feeClaimedInstruction});
+
+  const txSig2 = await sendTransaction(new Transaction().add(feeClaimedInstruction), connection, {
+    skipPreflight: true,
+  });
+
+  console.log("Transfer Signature:", txSig2);
+}
