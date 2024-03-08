@@ -5,17 +5,15 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-sol_earna = "xnwVapsgETFh2cz8LFPfTyneACVaMtxbR7D7KeFH3K8"
-
-[programs.devnet]
-sol_earna = "6pkLsRGjcnR8Vr8PP7uEDXtkipkUcUoj3xLSQqGCCxDD"
+sol_earna = "2me2g1K7KVA7RBhg1rcbpxRvCknd4v1UCA8RMEjm3hmg"
+wrapper = "3ZgdeiLicn4YBxDokpmYuitsAonCtnLPnXtbwLPn8WCa"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet" # Or ("Devnet" or "Localnet")
-wallet = "~/.config/solana/id.json"
+cluster = "Localnet"
+wallet = "/home/anodaram/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

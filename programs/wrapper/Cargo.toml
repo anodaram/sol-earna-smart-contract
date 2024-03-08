@@ -1,12 +1,12 @@
 [package]
-name = "sol-earna"
+name = "wrapper"
 version = "0.1.0"
 description = "Created with Anchor"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "sol_earna"
+name = "wrapper"
 
 [features]
 no-entrypoint = []

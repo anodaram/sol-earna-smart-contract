@@ -1,9 +1,9 @@
 use anchor_lang::prelude::*;
 
-declare_id!("2me2g1K7KVA7RBhg1rcbpxRvCknd4v1UCA8RMEjm3hmg");
+declare_id!("3ZgdeiLicn4YBxDokpmYuitsAonCtnLPnXtbwLPn8WCa");
 
 #[program]
-pub mod sol_earna {
+pub mod wrapper {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
