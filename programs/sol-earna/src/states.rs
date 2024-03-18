@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 #[account]
 pub struct FeeConfig {
-    pub wrapper_token_address: Pubkey,
+    pub wrapper_mint_address: Pubkey,
     pub fee_recipient_liquidity: Pubkey,
     pub fee_recipient_marketing: Pubkey,
     pub fee_recipient_holders: Pubkey,

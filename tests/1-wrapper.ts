@@ -1,6 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
   createMint,
@@ -22,15 +23,13 @@ import {
   Transaction,
   sendAndConfirmTransaction
 } from "@solana/web3.js";
+import { pda } from "./utils";
+import { TREASURY_TAG, USER_WRAPPER_TOKEN_ACCOUNT_TAG, WRAPPER_MINT_TAG } from "./constants";
 
 chaiUse(chaiAsPromised);
 
 describe('wrapper', () => {
   // Constants
-  const TREASURY_TAG = Buffer.from("treasury");
-  const TREASURY_TOKEN_ACCOUNT_TAG = Buffer.from("treasury-token-account");
-  const WRAPPER_MINT_TAG = Buffer.from("wrapper-mint");
-  const USER_WRAPPER_TOKEN_ACCOUNT_TAG = Buffer.from("user-wrapper-token-account");
 
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
@@ -63,7 +62,7 @@ describe('wrapper', () => {
     });
   });
 
-  it('Is Initialize!', async () => {
+  it('Initialize!', async () => {
     console.log("treasuryAdmin", treasuryAdmin.toBase58());
     console.log("user", user.toBase58());
 
@@ -75,14 +74,19 @@ describe('wrapper', () => {
       wallet.payer,
       treasuryAdmin,
       null,
-      9
+      9,
+      Keypair.generate(),
+      undefined,
+      TOKEN_2022_PROGRAM_ID
     );
     console.log("treasuryTokenMint", treasuryTokenMint.toBase58());
 
-    userTreasuryTokenAccount = getAssociatedTokenAddressSync(
+    userTreasuryTokenAccount = await getAssociatedTokenAddressSync(
       treasuryTokenMint,
       user,
-      false
+      false,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
     );
 
     const transaction = new Transaction().add(
@@ -90,13 +94,17 @@ describe('wrapper', () => {
         treasuryAdmin,
         userTreasuryTokenAccount,
         user,
-        treasuryTokenMint
+        treasuryTokenMint,
+        TOKEN_2022_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
       ),
       createMintToInstruction(
         treasuryTokenMint,
         userTreasuryTokenAccount,
         treasuryAdmin,
-        mintAmount
+        mintAmount,
+        [],
+        TOKEN_2022_PROGRAM_ID
       )
     );
 
@@ -109,13 +117,39 @@ describe('wrapper', () => {
     console.log(`Transaction Signature: ${txSig}`);
   });
 
-  let wrapperMint: PublicKey = null;
+  let wrapperMint: PublicKey;
+  let treasuryTokenAccount: PublicKey;
   it('CreateTreasury !', async () => {
     const treasury = await pda([TREASURY_TAG, treasuryTokenMint.toBuffer(), treasuryAdmin.toBuffer()], programId);
-    const treasuryTokenAccount = await pda([TREASURY_TOKEN_ACCOUNT_TAG, treasury.toBuffer()], programId);
     wrapperMint = await pda([WRAPPER_MINT_TAG, treasury.toBuffer()], programId);
 
-    const txSig = await program.methods.createTreasury().accounts({
+    treasuryTokenAccount = getAssociatedTokenAddressSync(
+      treasuryTokenMint,
+      treasury,
+      true,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    const transaction = new Transaction().add(
+      createAssociatedTokenAccountInstruction(
+        treasuryAdmin,
+        treasuryTokenAccount,
+        treasury,
+        treasuryTokenMint,
+        TOKEN_2022_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      ),
+    );
+    const txSig = await sendAndConfirmTransaction(
+      connection,
+      transaction,
+      [wallet.payer],
+      { skipPreflight: true }
+    );
+    console.log(`Transaction Signature: ${txSig}`);
+
+    const txSig2 = await program.methods.createTreasury().accounts({
       treasury,
       treasuryMint: treasuryTokenMint,
       wrapperMint,
@@ -125,7 +159,7 @@ describe('wrapper', () => {
       tokenProgram: TOKEN_PROGRAM_ID,
     }).signers([wallet.payer]).rpc();
 
-    console.log(`Transaction Signature: ${txSig}`);
+    console.log(`Transaction Signature: ${txSig2}`);
 
     const treasuryData = await program.account.treasury.fetch(treasury);
     assert_eq(treasuryData.authority, treasuryAdmin);
@@ -137,30 +171,31 @@ describe('wrapper', () => {
   const stakeAmount = 100_000_000_000; //100 POS
   it('Stake !', async () => {
     const treasury = await pda([TREASURY_TAG, treasuryTokenMint.toBuffer(), treasuryAdmin.toBuffer()], programId);
-    const treasuryTokenAccount = await pda([TREASURY_TOKEN_ACCOUNT_TAG, treasury.toBuffer()], programId);
     const wrapperMint = await pda([WRAPPER_MINT_TAG, treasury.toBuffer()], programId);
     const userWrapperTokenAccount = await pda([USER_WRAPPER_TOKEN_ACCOUNT_TAG, wrapperMint.toBuffer(), user.toBuffer()], programId);
-    const treasuryAmountBefore = (await getAccount(connection, treasuryTokenAccount)).amount
+    const treasuryAmountBefore = (await getAccount(connection, treasuryTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount
     let userPosAmountBefore = BigInt(0);
     try {
-      userPosAmountBefore = (await getAccount(connection, userWrapperTokenAccount)).amount;
+      userPosAmountBefore = (await getAccount(connection, userWrapperTokenAccount, 'processed', TOKEN_PROGRAM_ID)).amount;
     } catch (e) { }
 
     const txSig = await program.methods.stake(new anchor.BN(stakeAmount)).accounts({
-      treasury,
-      wrapperMint,
-      treasuryMint: treasuryTokenMint,
-      treasuryTokenAccount,
-      userTokenAccount: userTreasuryTokenAccount,
-      userWrapperTokenAccount,
-      user,
-      systemProgram: anchor.web3.SystemProgram.programId,
-      tokenProgram: TOKEN_PROGRAM_ID,
+      treasury, // treasury
+      wrapperMint, // wrapper_mint
+      treasuryMint: treasuryTokenMint, // treasury_mint
+      treasuryTokenAccount, // treasury_token_account
+      userTokenAccount: userTreasuryTokenAccount, // user_token_account
+      userWrapperTokenAccount, // user_wrapper_token_account
+      user, // user
+      systemProgram: anchor.web3.SystemProgram.programId, // system_program
+      tokenProgram: TOKEN_PROGRAM_ID, // token_program
+      tokenProgramTreasury: TOKEN_2022_PROGRAM_ID, // token_program_treasury
+      // associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID // associated_token_program
     }).signers([userKeypair]).rpc();
     console.log(`Transaction Signature: ${txSig}`);
 
-    let treasuryAmountAfter = (await getAccount(connection, treasuryTokenAccount)).amount;
-    let userPosAmountAfter = (await getAccount(connection, userWrapperTokenAccount)).amount;
+    let treasuryAmountAfter = (await getAccount(connection, treasuryTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    let userPosAmountAfter = (await getAccount(connection, userWrapperTokenAccount, 'processed', TOKEN_PROGRAM_ID)).amount;
     assert_true(treasuryAmountAfter - treasuryAmountBefore === BigInt(stakeAmount), "stakeAmount treasury");
     assert_true(userPosAmountAfter - userPosAmountBefore === BigInt(stakeAmount), "stakeAmount userPos");
   });
@@ -168,11 +203,10 @@ describe('wrapper', () => {
   const redeemAmount = 10_000_000_000; //10 POS
   it('Redeem !', async () => {
     const treasury = await pda([TREASURY_TAG, treasuryTokenMint.toBuffer(), treasuryAdmin.toBuffer()], programId);
-    const treasuryTokenAccount = await pda([TREASURY_TOKEN_ACCOUNT_TAG, treasury.toBuffer()], programId);
     const wrapperMint = await pda([WRAPPER_MINT_TAG, treasury.toBuffer()], programId);
     const userWrapperTokenAccount = await pda([USER_WRAPPER_TOKEN_ACCOUNT_TAG, wrapperMint.toBuffer(), user.toBuffer()], programId);
-    let treasuryAmountBefore = (await getAccount(connection, treasuryTokenAccount)).amount;
-    let userPosAmountBefore = (await getAccount(connection, userWrapperTokenAccount)).amount;
+    let treasuryAmountBefore = (await getAccount(connection, treasuryTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    let userPosAmountBefore = (await getAccount(connection, userWrapperTokenAccount, 'processed', TOKEN_PROGRAM_ID)).amount;
 
     const txSig = await program.methods.redeem(new anchor.BN(redeemAmount)).accounts({
       treasury,
@@ -182,12 +216,14 @@ describe('wrapper', () => {
       userTokenAccount: userTreasuryTokenAccount,
       userWrapperTokenAccount,
       user,
-      tokenProgram: TOKEN_PROGRAM_ID,
+      tokenProgram: TOKEN_PROGRAM_ID, // token_program
+      tokenProgramTreasury: TOKEN_2022_PROGRAM_ID, // token_program_treasury
+      // associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID
     }).signers([userKeypair]).rpc();
     console.log(`Transaction Signature: ${txSig}`);
 
-    let treasuryAmountAfter = (await getAccount(connection, treasuryTokenAccount)).amount;
-    let userPosAmountAfter = (await getAccount(connection, userWrapperTokenAccount)).amount;
+    let treasuryAmountAfter = (await getAccount(connection, treasuryTokenAccount, 'processed', TOKEN_2022_PROGRAM_ID)).amount;
+    let userPosAmountAfter = (await getAccount(connection, userWrapperTokenAccount, 'processed', TOKEN_PROGRAM_ID)).amount;
     assert_true(treasuryAmountBefore - treasuryAmountAfter === BigInt(redeemAmount), "redeemAmount treasury");
     assert_true(userPosAmountBefore - userPosAmountAfter === BigInt(redeemAmount), "redeemAmount userPos");
   });
@@ -213,15 +249,6 @@ async function safeAirdrop(connection: anchor.web3.Connection, destination: anch
     } catch { }
 
   };
-}
-
-async function pda(seeds: (Buffer | Uint8Array)[], programId: anchor.web3.PublicKey) {
-  const [pdaKey] =
-    await anchor.web3.PublicKey.findProgramAddress(
-      seeds,
-      programId,
-    );
-  return pdaKey;
 }
 
 async function delay(ms: number) {

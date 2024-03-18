@@ -29,30 +29,36 @@ pub mod sol_earna {
         fee_percent_marketing: u16,
         fee_percent_liquidity: u16,
     ) -> Result<()> {
+        let _a = &ctx.accounts;
         // The `addExtraAccountsToInstruction` JS helper function resolving incorrectly
         let account_metas = vec![
-            ExtraAccountMeta::new_with_pubkey(
-                &ctx.accounts.fee_config.key(),
-                false, // is_signer
-                true,  // is_writable
-            )?,
-            ExtraAccountMeta::new_with_pubkey(
-                &ctx.accounts.fee_recipient_liquidity.key(),
-                true, // is_signer
-                true,  // is_writable
-            )?,
-            ExtraAccountMeta::new_with_pubkey(
-                &ctx.accounts.fee_recipient_marketing.key(),
-                true, // is_signer
-                true,  // is_writable
-            )?,
-            ExtraAccountMeta::new_with_pubkey(
-                &ctx.accounts.fee_recipient_holders.key(),
-                true, // is_signer
-                true,  // is_writable
-            )?,
+            // ExtraAccountMeta::new_with_pubkey(&_a.token_program.key(), false, true)?,
+            // ExtraAccountMeta::new_with_pubkey(&_a.associated_token_program.key(), false, true)?,
+            // ExtraAccountMeta::new_with_pubkey(&_a.system_program.key(), false, true)?,
+            // ExtraAccountMeta::new_with_pubkey(&_a.fee_config.key(), false, true)?,
+            // ExtraAccountMeta::new_with_pubkey(&_a.wsol_mint.key(), false, true)?,
+            // ExtraAccountMeta::new_with_pubkey(&_a.fee_wsol_token_account.key(), false, true)?,
+            // ExtraAccountMeta::new_with_pubkey(&_a.wrapper_mint.key(), false, true)?,
+            // ExtraAccountMeta::new_with_pubkey(&_a.fee_wrapper_token_account.key(), false, true)?,
+            // ExtraAccountMeta::new_with_pubkey(&_a.fee_recipient_liquidity.key(), true, true)?,
+            // ExtraAccountMeta::new_with_pubkey(
+            //     &_a.fee_liquidity_wsol_token_account.key(),
+            //     false,
+            //     true,
+            // )?,
+            // ExtraAccountMeta::new_with_pubkey(&_a.fee_recipient_marketing.key(), true, true)?,
+            // ExtraAccountMeta::new_with_pubkey(
+            //     &_a.fee_marketing_wsol_token_account.key(),
+            //     false,
+            //     true,
+            // )?,
+            // ExtraAccountMeta::new_with_pubkey(&_a.fee_recipient_holders.key(), true, true)?,
+            // ExtraAccountMeta::new_with_pubkey(
+            //     &_a.fee_holders_wsol_token_account.key(),
+            //     false,
+            //     true,
+            // )?,
         ];
-        
 
         // calculate account size
         let account_size = ExtraAccountMetaList::size_of(account_metas.len())? as u64;
@@ -87,14 +93,15 @@ pub mod sol_earna {
             &account_metas,
         )?;
 
-        ctx.accounts.fee_config.fee_percent_liquidity = fee_percent_liquidity;
-        ctx.accounts.fee_config.fee_percent_marketing = fee_percent_marketing;
-        ctx.accounts.fee_config.fee_percent_holders = fee_percent_holders;
-        ctx.accounts.fee_config.fee_recipient_liquidity =
-            ctx.accounts.fee_recipient_liquidity.key();
-        ctx.accounts.fee_config.fee_recipient_marketing =
-            ctx.accounts.fee_recipient_marketing.key();
-        ctx.accounts.fee_config.fee_recipient_holders = ctx.accounts.fee_recipient_holders.key();
+        // ctx.accounts.fee_config.wrapper_mint_address = ctx.accounts.wrapper_mint.key();
+        // ctx.accounts.fee_config.fee_recipient_liquidity =
+        //     ctx.accounts.fee_recipient_liquidity.key();
+        // ctx.accounts.fee_config.fee_recipient_marketing =
+        //     ctx.accounts.fee_recipient_marketing.key();
+        // ctx.accounts.fee_config.fee_recipient_holders = ctx.accounts.fee_recipient_holders.key();
+        // ctx.accounts.fee_config.fee_percent_liquidity = fee_percent_liquidity;
+        // ctx.accounts.fee_config.fee_percent_marketing = fee_percent_marketing;
+        // ctx.accounts.fee_config.fee_percent_holders = fee_percent_holders;
 
         Ok(())
     }

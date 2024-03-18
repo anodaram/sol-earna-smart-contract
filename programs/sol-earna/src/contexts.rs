@@ -37,18 +37,51 @@ pub struct InitializeExtraAccountMetaList<'info> {
     )]
     pub fee_config: Account<'info, FeeConfig>,
 
+    pub wsol_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        init_if_needed,
+        payer = payer,
+        associated_token::mint = wsol_mint,
+        associated_token::authority = payer
+    )]
+    pub fee_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
+
+    pub wrapper_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        init_if_needed,
+        payer = payer,
+        associated_token::mint = wrapper_mint,
+        associated_token::authority = payer
+    )]
+    pub fee_wrapper_token_account: InterfaceAccount<'info, TokenAccount>,
+
     #[account(mut)]
     pub fee_recipient_liquidity: SystemAccount<'info>,
+    #[account(
+        init_if_needed,
+        payer = payer,
+        associated_token::mint = wsol_mint,
+        associated_token::authority = fee_recipient_liquidity
+    )]
+    pub fee_liquidity_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
     #[account(mut)]
     pub fee_recipient_marketing: SystemAccount<'info>,
+    #[account(
+        init_if_needed,
+        payer = payer,
+        associated_token::mint = wsol_mint,
+        associated_token::authority = fee_recipient_marketing
+    )]
+    pub fee_marketing_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
     #[account(mut)]
     pub fee_recipient_holders: SystemAccount<'info>,
-
-    pub wsol_mint: InterfaceAccount<'info, Mint>,
-    pub fee_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
-    
-    pub wrapper_mint: InterfaceAccount<'info, Mint>,
-    pub fee_wrapper_token_account: InterfaceAccount<'info, TokenAccount>,
+    #[account(
+        init_if_needed,
+        payer = payer,
+        associated_token::mint = wsol_mint,
+        associated_token::authority = fee_recipient_holders
+    )]
+    pub fee_holders_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
 }
 
 // Order of accounts matters for this struct.
@@ -75,4 +108,32 @@ pub struct TransferHook<'info> {
         bump
     )]
     pub extra_account_meta_list: UncheckedAccount<'info>,
+
+    pub token_program: Interface<'info, TokenInterface>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+
+    #[account(mut)]
+    pub fee_config: Account<'info, FeeConfig>,
+
+    pub wsol_mint: InterfaceAccount<'info, Mint>,
+    #[account(mut)]
+    pub fee_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
+
+    pub wrapper_mint: InterfaceAccount<'info, Mint>,
+    #[account(mut)]
+    pub fee_wrapper_token_account: InterfaceAccount<'info, TokenAccount>,
+
+    #[account(mut)]
+    pub fee_recipient_liquidity: SystemAccount<'info>,
+    #[account(mut)]
+    pub fee_liquidity_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
+    #[account(mut)]
+    pub fee_recipient_marketing: SystemAccount<'info>,
+    #[account(mut)]
+    pub fee_marketing_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
+    #[account(mut)]
+    pub fee_recipient_holders: SystemAccount<'info>,
+    #[account(mut)]
+    pub fee_holders_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
 }

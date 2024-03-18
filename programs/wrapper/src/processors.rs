@@ -43,7 +43,7 @@ impl<'info> Stake<'info> {
 
         transfer_checked(
             CpiContext::new(
-                self.token_program.to_account_info(),
+                self.token_program_treasury.to_account_info(),
                 TransferChecked {
                     from: self.user_token_account.to_account_info(),
                     to: self.treasury_token_account.to_account_info(),
@@ -64,6 +64,7 @@ impl<'info> Stake<'info> {
                     authority: treasury.to_account_info(),
                 },
             )
+            // .with_remaining_accounts(self.user.to_account_infos())
             .with_signer(signer_seeds),
             amount,
         )?;
@@ -106,7 +107,7 @@ impl<'info> Redeem<'info> {
 
         transfer_checked(
             CpiContext::new(
-                self.token_program.to_account_info(),
+                self.token_program_treasury.to_account_info(),
                 TransferChecked {
                     from: self.treasury_token_account.to_account_info(),
                     to: self.user_token_account.to_account_info(),

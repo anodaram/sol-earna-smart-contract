@@ -1,8 +1,7 @@
 use anchor_lang::prelude::*;
 
 use anchor_spl::{
-    self,
-    token_interface::{Mint, TokenAccount, TokenInterface},
+    self, associated_token::AssociatedToken, token_interface::{Mint, TokenAccount, TokenInterface}
 };
 
 use crate::*;
@@ -31,24 +30,21 @@ pub struct CreateTreasury<'info> {
         mint::authority = treasury,
         seeds = [WRAPPER_MINT_TAG, treasury.key().as_ref()],
         bump,
-        payer = authority
+        payer = authority,
     )]
     pub wrapper_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
-        init,
+        mut,
         token::mint = treasury_mint,
         token::authority = treasury,
-        seeds = [TREASURY_TOKEN_ACCOUNT_TAG, treasury.key().as_ref()],
-        bump,
-        payer = authority
     )]
     pub treasury_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(mut)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Interface<'info, TokenInterface>, // should be TOKEN_PROGRAM_ID (not TOKEN_2022_PROGRAM_ID)
 }
 
 #[derive(Accounts)]
@@ -76,8 +72,6 @@ pub struct Stake<'info> {
         mut,
         token::mint = treasury_mint,
         token::authority = treasury,
-        seeds = [TREASURY_TOKEN_ACCOUNT_TAG, treasury.key().as_ref()],
-        bump
     )]
     pub treasury_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
@@ -101,7 +95,8 @@ pub struct Stake<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Interface<'info, TokenInterface>, // should be TOKEN_PROGRAM_ID (not TOKEN_2022_PROGRAM_ID)
+    pub token_program_treasury: Interface<'info, TokenInterface>,
 }
 
 #[derive(Accounts)]
@@ -129,8 +124,6 @@ pub struct Redeem<'info> {
         mut,
         token::mint = treasury_mint,
         token::authority = treasury,
-        seeds = [TREASURY_TOKEN_ACCOUNT_TAG, treasury.key().as_ref()],
-        bump
     )]
     pub treasury_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
@@ -145,5 +138,6 @@ pub struct Redeem<'info> {
     pub user_wrapper_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     pub user: Signer<'info>,
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Interface<'info, TokenInterface>, // should be TOKEN_PROGRAM_ID (not TOKEN_2022_PROGRAM_ID)
+    pub token_program_treasury: Interface<'info, TokenInterface>,
 }
