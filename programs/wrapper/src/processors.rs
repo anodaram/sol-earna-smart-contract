@@ -14,14 +14,14 @@ impl<'info> CreateTreasury<'info> {
         let treasury = &mut self.treasury;
         treasury.authority = self.authority.key();
         treasury.treasury_mint = self.treasury_mint.key();
-        treasury.treasury_vault = self.treasury_vault.key();
-        treasury.pos_mint = self.pos_mint.key();
+        treasury.treasury_token_account = self.treasury_token_account.key();
+        treasury.wrapper_mint = self.wrapper_mint.key();
 
         emit!(TreasuryCreated {
             authority: treasury.authority,
             treasury_mint: treasury.treasury_mint,
-            treasury_vault: treasury.treasury_vault,
-            pos_mint: treasury.pos_mint,
+            treasury_token_account: treasury.treasury_token_account,
+            wrapper_mint: treasury.wrapper_mint,
         });
 
         Ok(())
@@ -45,10 +45,10 @@ impl<'info> Stake<'info> {
             CpiContext::new(
                 self.token_program.to_account_info(),
                 TransferChecked {
-                    from: self.user_vault.to_account_info(),
-                    to: self.treasury_vault.to_account_info(),
+                    from: self.user_token_account.to_account_info(),
+                    to: self.treasury_token_account.to_account_info(),
                     mint: self.treasury_mint.to_account_info(),
-                    authority: self.authority.to_account_info(),
+                    authority: self.user.to_account_info(),
                 },
             ),
             amount,
@@ -59,8 +59,8 @@ impl<'info> Stake<'info> {
             CpiContext::new(
                 self.token_program.to_account_info(),
                 MintTo {
-                    mint: self.pos_mint.to_account_info(),
-                    to: self.user_pos_vault.to_account_info(),
+                    mint: self.wrapper_mint.to_account_info(),
+                    to: self.user_wrapper_token_account.to_account_info(),
                     authority: treasury.to_account_info(),
                 },
             )
@@ -70,7 +70,7 @@ impl<'info> Stake<'info> {
 
         emit!(Deposited {
             treasury: treasury.key(),
-            user: self.authority.key(),
+            user: self.user.key(),
             amount: amount,
         });
 
@@ -95,9 +95,9 @@ impl<'info> Redeem<'info> {
             CpiContext::new(
                 self.token_program.to_account_info(),
                 Burn {
-                    mint: self.pos_mint.to_account_info(),
-                    from: self.user_pos_vault.to_account_info(),
-                    authority: self.authority.to_account_info(),
+                    mint: self.wrapper_mint.to_account_info(),
+                    from: self.user_wrapper_token_account.to_account_info(),
+                    authority: self.user.to_account_info(),
                 },
             )
             .with_signer(signer_seeds),
@@ -108,8 +108,8 @@ impl<'info> Redeem<'info> {
             CpiContext::new(
                 self.token_program.to_account_info(),
                 TransferChecked {
-                    from: self.treasury_vault.to_account_info(),
-                    to: self.user_vault.to_account_info(),
+                    from: self.treasury_token_account.to_account_info(),
+                    to: self.user_token_account.to_account_info(),
                     mint: self.treasury_mint.to_account_info(),
                     authority: treasury.to_account_info(),
                 },
@@ -121,7 +121,7 @@ impl<'info> Redeem<'info> {
 
         emit!(Claimed {
             treasury: treasury.key(),
-            user: self.authority.key(),
+            user: self.user.key(),
             amount: amount,
         });
 

@@ -6,8 +6,8 @@ use anchor_lang::prelude::*;
 pub struct TreasuryCreated {
     pub authority: Pubkey,
     pub treasury_mint: Pubkey,
-    pub pos_mint: Pubkey,
-    pub treasury_vault: Pubkey,
+    pub wrapper_mint: Pubkey,
+    pub treasury_token_account: Pubkey,
 }
 
 #[event]

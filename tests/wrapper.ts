@@ -28,9 +28,9 @@ chaiUse(chaiAsPromised);
 describe('wrapper', () => {
   // Constants
   const TREASURY_TAG = Buffer.from("treasury");
-  const TREASURY_VAULT_TAG = Buffer.from("treasury-vault");
-  const POS_MINT_TAG = Buffer.from("pos-mint");
-  const USER_POS_VAULT_TAG = Buffer.from("user-pos-vault");
+  const TREASURY_TOKEN_ACCOUNT_TAG = Buffer.from("treasury-token-account");
+  const WRAPPER_MINT_TAG = Buffer.from("wrapper-mint");
+  const USER_WRAPPER_TOKEN_ACCOUNT_TAG = Buffer.from("user-wrapper-token-account");
 
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
@@ -48,7 +48,7 @@ describe('wrapper', () => {
   let treasuryTokenMint: PublicKey = null;
   const mintAmount = 10_000_000_000_000; // 10000 POS
 
-  let userTreasuryVault: PublicKey;
+  let userTreasuryTokenAccount: PublicKey;
   let listenerCreated, listenerDeposited, listenerClaimed;
 
   before(() => {
@@ -79,7 +79,7 @@ describe('wrapper', () => {
     );
     console.log("treasuryTokenMint", treasuryTokenMint.toBase58());
 
-    userTreasuryVault = getAssociatedTokenAddressSync(
+    userTreasuryTokenAccount = getAssociatedTokenAddressSync(
       treasuryTokenMint,
       user,
       false
@@ -88,13 +88,13 @@ describe('wrapper', () => {
     const transaction = new Transaction().add(
       createAssociatedTokenAccountInstruction(
         treasuryAdmin,
-        userTreasuryVault,
+        userTreasuryTokenAccount,
         user,
         treasuryTokenMint
       ),
       createMintToInstruction(
         treasuryTokenMint,
-        userTreasuryVault,
+        userTreasuryTokenAccount,
         treasuryAdmin,
         mintAmount
       )
@@ -109,17 +109,17 @@ describe('wrapper', () => {
     console.log(`Transaction Signature: ${txSig}`);
   });
 
-  let posMint: PublicKey = null;
+  let wrapperMint: PublicKey = null;
   it('CreateTreasury !', async () => {
     const treasury = await pda([TREASURY_TAG, treasuryTokenMint.toBuffer(), treasuryAdmin.toBuffer()], programId);
-    const treasuryVault = await pda([TREASURY_VAULT_TAG, treasury.toBuffer()], programId);
-    posMint = await pda([POS_MINT_TAG, treasury.toBuffer()], programId);
+    const treasuryTokenAccount = await pda([TREASURY_TOKEN_ACCOUNT_TAG, treasury.toBuffer()], programId);
+    wrapperMint = await pda([WRAPPER_MINT_TAG, treasury.toBuffer()], programId);
 
     const txSig = await program.methods.createTreasury().accounts({
       treasury,
       treasuryMint: treasuryTokenMint,
-      posMint,
-      treasuryVault,
+      wrapperMint,
+      treasuryTokenAccount,
       authority: treasuryAdmin,
       systemProgram: SystemProgram.programId,
       tokenProgram: TOKEN_PROGRAM_ID,
@@ -130,37 +130,37 @@ describe('wrapper', () => {
     const treasuryData = await program.account.treasury.fetch(treasury);
     assert_eq(treasuryData.authority, treasuryAdmin);
     assert_true(treasuryData.treasuryMint.equals(treasuryTokenMint), "treasuryMint");
-    assert_true(treasuryData.treasuryVault.equals(treasuryVault), "treasuryVault");
-    assert_true(treasuryData.posMint.equals(posMint), "posMint");
+    assert_true(treasuryData.treasuryTokenAccount.equals(treasuryTokenAccount), "treasuryTokenAccount");
+    assert_true(treasuryData.wrapperMint.equals(wrapperMint), "wrapperMint");
   });
 
   const stakeAmount = 100_000_000_000; //100 POS
   it('Stake !', async () => {
     const treasury = await pda([TREASURY_TAG, treasuryTokenMint.toBuffer(), treasuryAdmin.toBuffer()], programId);
-    const treasuryVault = await pda([TREASURY_VAULT_TAG, treasury.toBuffer()], programId);
-    const posMint = await pda([POS_MINT_TAG, treasury.toBuffer()], programId);
-    const userPosVault = await pda([USER_POS_VAULT_TAG, posMint.toBuffer(), user.toBuffer()], programId);
-    const treasuryAmountBefore = (await getAccount(connection, treasuryVault)).amount
+    const treasuryTokenAccount = await pda([TREASURY_TOKEN_ACCOUNT_TAG, treasury.toBuffer()], programId);
+    const wrapperMint = await pda([WRAPPER_MINT_TAG, treasury.toBuffer()], programId);
+    const userWrapperTokenAccount = await pda([USER_WRAPPER_TOKEN_ACCOUNT_TAG, wrapperMint.toBuffer(), user.toBuffer()], programId);
+    const treasuryAmountBefore = (await getAccount(connection, treasuryTokenAccount)).amount
     let userPosAmountBefore = BigInt(0);
     try {
-      userPosAmountBefore = (await getAccount(connection, userPosVault)).amount;
+      userPosAmountBefore = (await getAccount(connection, userWrapperTokenAccount)).amount;
     } catch (e) { }
 
     const txSig = await program.methods.stake(new anchor.BN(stakeAmount)).accounts({
       treasury,
-      posMint,
+      wrapperMint,
       treasuryMint: treasuryTokenMint,
-      treasuryVault,
-      userVault: userTreasuryVault,
-      userPosVault,
-      authority: user,
+      treasuryTokenAccount,
+      userTokenAccount: userTreasuryTokenAccount,
+      userWrapperTokenAccount,
+      user,
       systemProgram: anchor.web3.SystemProgram.programId,
       tokenProgram: TOKEN_PROGRAM_ID,
     }).signers([userKeypair]).rpc();
     console.log(`Transaction Signature: ${txSig}`);
 
-    let treasuryAmountAfter = (await getAccount(connection, treasuryVault)).amount;
-    let userPosAmountAfter = (await getAccount(connection, userPosVault)).amount;
+    let treasuryAmountAfter = (await getAccount(connection, treasuryTokenAccount)).amount;
+    let userPosAmountAfter = (await getAccount(connection, userWrapperTokenAccount)).amount;
     assert_true(treasuryAmountAfter - treasuryAmountBefore === BigInt(stakeAmount), "stakeAmount treasury");
     assert_true(userPosAmountAfter - userPosAmountBefore === BigInt(stakeAmount), "stakeAmount userPos");
   });
@@ -168,26 +168,26 @@ describe('wrapper', () => {
   const redeemAmount = 10_000_000_000; //10 POS
   it('Redeem !', async () => {
     const treasury = await pda([TREASURY_TAG, treasuryTokenMint.toBuffer(), treasuryAdmin.toBuffer()], programId);
-    const treasuryVault = await pda([TREASURY_VAULT_TAG, treasury.toBuffer()], programId);
-    const posMint = await pda([POS_MINT_TAG, treasury.toBuffer()], programId);
-    const userPosVault = await pda([USER_POS_VAULT_TAG, posMint.toBuffer(), user.toBuffer()], programId);
-    let treasuryAmountBefore = (await getAccount(connection, treasuryVault)).amount;
-    let userPosAmountBefore = (await getAccount(connection, userPosVault)).amount;
+    const treasuryTokenAccount = await pda([TREASURY_TOKEN_ACCOUNT_TAG, treasury.toBuffer()], programId);
+    const wrapperMint = await pda([WRAPPER_MINT_TAG, treasury.toBuffer()], programId);
+    const userWrapperTokenAccount = await pda([USER_WRAPPER_TOKEN_ACCOUNT_TAG, wrapperMint.toBuffer(), user.toBuffer()], programId);
+    let treasuryAmountBefore = (await getAccount(connection, treasuryTokenAccount)).amount;
+    let userPosAmountBefore = (await getAccount(connection, userWrapperTokenAccount)).amount;
 
     const txSig = await program.methods.redeem(new anchor.BN(redeemAmount)).accounts({
       treasury,
       treasuryMint: treasuryTokenMint,
-      posMint,
-      treasuryVault,
-      userVault: userTreasuryVault,
-      userPosVault,
-      authority: user,
+      wrapperMint,
+      treasuryTokenAccount,
+      userTokenAccount: userTreasuryTokenAccount,
+      userWrapperTokenAccount,
+      user,
       tokenProgram: TOKEN_PROGRAM_ID,
     }).signers([userKeypair]).rpc();
     console.log(`Transaction Signature: ${txSig}`);
 
-    let treasuryAmountAfter = (await getAccount(connection, treasuryVault)).amount;
-    let userPosAmountAfter = (await getAccount(connection, userPosVault)).amount;
+    let treasuryAmountAfter = (await getAccount(connection, treasuryTokenAccount)).amount;
+    let userPosAmountAfter = (await getAccount(connection, userWrapperTokenAccount)).amount;
     assert_true(treasuryAmountBefore - treasuryAmountAfter === BigInt(redeemAmount), "redeemAmount treasury");
     assert_true(userPosAmountBefore - userPosAmountAfter === BigInt(redeemAmount), "redeemAmount userPos");
   });

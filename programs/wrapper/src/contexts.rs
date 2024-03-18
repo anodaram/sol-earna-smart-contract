@@ -29,21 +29,21 @@ pub struct CreateTreasury<'info> {
         init_if_needed,
         mint::decimals = treasury_mint.decimals,
         mint::authority = treasury,
-        seeds = [POS_MINT_TAG, treasury.key().as_ref()],
+        seeds = [WRAPPER_MINT_TAG, treasury.key().as_ref()],
         bump,
         payer = authority
     )]
-    pub pos_mint: Box<InterfaceAccount<'info, Mint>>,
+    pub wrapper_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         init,
         token::mint = treasury_mint,
         token::authority = treasury,
-        seeds = [TREASURY_VAULT_TAG, treasury.key().as_ref()],
+        seeds = [TREASURY_TOKEN_ACCOUNT_TAG, treasury.key().as_ref()],
         bump,
         payer = authority
     )]
-    pub treasury_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub treasury_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -61,10 +61,10 @@ pub struct Stake<'info> {
     pub treasury: Box<Account<'info, Treasury>>,
     #[account(
         mut,
-        seeds = [POS_MINT_TAG, treasury.key().as_ref()],
+        seeds = [WRAPPER_MINT_TAG, treasury.key().as_ref()],
         bump,
     )]
-    pub pos_mint: Box<InterfaceAccount<'info, Mint>>,
+    pub wrapper_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
@@ -76,30 +76,30 @@ pub struct Stake<'info> {
         mut,
         token::mint = treasury_mint,
         token::authority = treasury,
-        seeds = [TREASURY_VAULT_TAG, treasury.key().as_ref()],
+        seeds = [TREASURY_TOKEN_ACCOUNT_TAG, treasury.key().as_ref()],
         bump
     )]
-    pub treasury_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub treasury_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
         token::mint = treasury_mint,
-        token::authority = authority
+        token::authority = user
     )]
-    pub user_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub user_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         init_if_needed,
-        token::mint = pos_mint,
-        token::authority = authority,
-        seeds = [USER_POS_VAULT_TAG, pos_mint.key().as_ref(), authority.key().as_ref()],
+        token::mint = wrapper_mint,
+        token::authority = user,
+        seeds = [USER_WRAPPER_TOKEN_ACCOUNT_TAG, wrapper_mint.key().as_ref(), user.key().as_ref()],
         bump,
-        payer = authority
+        payer = user
     )]
-    pub user_pos_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub user_wrapper_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(mut)]
-    pub authority: Signer<'info>,
+    pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Interface<'info, TokenInterface>,
 }
@@ -114,10 +114,10 @@ pub struct Redeem<'info> {
     pub treasury: Box<Account<'info, Treasury>>,
     #[account(
         mut,
-        seeds = [POS_MINT_TAG, treasury.key().as_ref()],
+        seeds = [WRAPPER_MINT_TAG, treasury.key().as_ref()],
         bump,
     )]
-    pub pos_mint: Box<InterfaceAccount<'info, Mint>>,
+    pub wrapper_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
@@ -129,21 +129,21 @@ pub struct Redeem<'info> {
         mut,
         token::mint = treasury_mint,
         token::authority = treasury,
-        seeds = [TREASURY_VAULT_TAG, treasury.key().as_ref()],
+        seeds = [TREASURY_TOKEN_ACCOUNT_TAG, treasury.key().as_ref()],
         bump
     )]
-    pub treasury_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub treasury_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
         token::mint = treasury_mint,
-        token::authority = authority
+        token::authority = user
     )]
-    pub user_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub user_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(mut)]
-    pub user_pos_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub user_wrapper_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    pub authority: Signer<'info>,
+    pub user: Signer<'info>,
     pub token_program: Interface<'info, TokenInterface>,
 }
