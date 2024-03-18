@@ -11,10 +11,5 @@ describe("sol-earna", () => {
   const wrapper = anchor.workspace.Wrapper as Program<Wrapper>;
 
   it("Is initialized!", async () => {
-    // Add your test here.
-    const tx = await solEarna.methods.initialize().rpc();
-    console.log("Your transaction signature", tx);
-    const tx2 = await wrapper.methods.initialize().rpc();
-    console.log("Your transaction signature", tx2);
   });
 });
