@@ -1,10 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
-  TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
-  createAssociatedTokenAccount,
   createAssociatedTokenAccountInstruction,
   createMint,
   createMintToInstruction,
@@ -19,7 +16,6 @@ import { assert_eq } from 'mocha-as-assert'
 import chaiAsPromised from 'chai-as-promised'
 import { Wrapper } from "../target/types/wrapper";
 import {
-  Connection,
   Keypair,
   PublicKey,
   SystemProgram,
@@ -160,8 +156,6 @@ describe('wrapper', () => {
       authority: user,
       systemProgram: anchor.web3.SystemProgram.programId,
       tokenProgram: TOKEN_PROGRAM_ID,
-      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-      rent: anchor.web3.SYSVAR_RENT_PUBKEY
     }).signers([userKeypair]).rpc();
     console.log(`Transaction Signature: ${txSig}`);
 

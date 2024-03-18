@@ -43,6 +43,10 @@ pub struct InitializeExtraAccountMetaList<'info> {
     pub fee_recipient_marketing: SystemAccount<'info>,
     #[account(mut)]
     pub fee_recipient_holders: SystemAccount<'info>,
+
+    pub fee_authority: SystemAccount<'info>,
+    pub fee_wsol_token_account: SystemAccount<'info>,
+    pub fee_wrapper_token_account: SystemAccount<'info>,
 }
 
 // Order of accounts matters for this struct.

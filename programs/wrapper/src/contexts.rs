@@ -2,14 +2,13 @@ use anchor_lang::prelude::*;
 
 use anchor_spl::{
     self,
-    associated_token::AssociatedToken,
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
 
 use crate::*;
 use constants::*;
-use states::*;
 use errors::*;
+use states::*;
 
 #[derive(Accounts)]
 #[instruction()]
@@ -75,12 +74,18 @@ pub struct Stake<'info> {
 
     #[account(
         mut,
+        token::mint = treasury_mint,
+        token::authority = treasury,
         seeds = [TREASURY_VAULT_TAG, treasury.key().as_ref()],
         bump
     )]
     pub treasury_vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = treasury_mint,
+        token::authority = authority
+    )]
     pub user_vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
@@ -97,8 +102,6 @@ pub struct Stake<'info> {
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Interface<'info, TokenInterface>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub rent: Sysvar<'info, Rent>,
 }
 
 #[derive(Accounts)]
@@ -124,12 +127,18 @@ pub struct Redeem<'info> {
 
     #[account(
         mut,
+        token::mint = treasury_mint,
+        token::authority = treasury,
         seeds = [TREASURY_VAULT_TAG, treasury.key().as_ref()],
         bump
     )]
     pub treasury_vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = treasury_mint,
+        token::authority = authority
+    )]
     pub user_vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(mut)]
