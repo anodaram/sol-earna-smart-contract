@@ -7,7 +7,24 @@ import {
 
 import { SolEarna } from "../target/types/sol_earna";
 import { Wrapper } from "../target/types/wrapper";
-import { ASSOCIATED_TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction, createInitializeInstruction, createInitializeMetadataPointerInstruction, createInitializeMintInstruction, createInitializeTransferFeeConfigInstruction, createInitializeTransferHookInstruction, createUpdateFieldInstruction, ExtensionType, getAssociatedTokenAddressSync, getMintLen, LENGTH_SIZE, NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TYPE_SIZE } from "@solana/spl-token";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountInstruction,
+  createInitializeInstruction,
+  createInitializeMetadataPointerInstruction,
+  createInitializeMintInstruction,
+  createInitializeTransferFeeConfigInstruction,
+  createInitializeTransferHookInstruction,
+  createUpdateFieldInstruction,
+  ExtensionType,
+  getAssociatedTokenAddressSync,
+  getMintLen,
+  LENGTH_SIZE,
+  NATIVE_MINT_2022,
+  TOKEN_2022_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
+  TYPE_SIZE
+} from "@solana/spl-token";
 import { Keypair, PublicKey, sendAndConfirmTransaction, SystemProgram, Transaction } from "@solana/web3.js";
 import { EXTRA_ACCOUNT_METAS_TAG, FEE_CONFIG_TAG, TREASURY_TAG, WRAPPER_MINT_TAG } from "./constants";
 import { pda } from "./utils";
@@ -136,7 +153,7 @@ describe("sol-earna", () => {
   });
 
   const feeWsolTokenAccount = getAssociatedTokenAddressSync(
-    NATIVE_MINT,
+    NATIVE_MINT_2022,
     wallet.publicKey,
     false,
     TOKEN_2022_PROGRAM_ID,
@@ -199,25 +216,25 @@ describe("sol-earna", () => {
       wrapperMint,
       wallet.publicKey,
       false,
-      TOKEN_2022_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
     feeLiquidityWsolTokenAccount = getAssociatedTokenAddressSync(
-      NATIVE_MINT,
+      NATIVE_MINT_2022,
       feeRecipientLiquidity.publicKey,
       false,
       TOKEN_2022_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
     feeMarketingWsolTokenAccount = getAssociatedTokenAddressSync(
-      NATIVE_MINT,
+      NATIVE_MINT_2022,
       feeRecipientMarketing.publicKey,
       false,
       TOKEN_2022_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
     feeHoldersWsolTokenAccount = getAssociatedTokenAddressSync(
-      NATIVE_MINT,
+      NATIVE_MINT_2022,
       feeRecipientHolders.publicKey,
       false,
       TOKEN_2022_PROGRAM_ID,
@@ -229,7 +246,36 @@ describe("sol-earna", () => {
   it("Create ExtraAccountMetaList Account", async () => {
     const extraAccountMetasInfo = await connection.getAccountInfo(extraAccountMetaListPDA);
 
+    const ix1 = createAssociatedTokenAccountInstruction(
+      wallet.publicKey,
+      feeWrapperTokenAccount,
+      wallet.publicKey,
+      wrapperMint,
+      TOKEN_PROGRAM_ID
+    );
+
     PUT_LOG && console.log("Extra accounts meta: " + extraAccountMetasInfo);
+    console.log(
+      {
+        payer: wallet.publicKey.toBase58(), // payer
+        extraAccountMetaList: extraAccountMetaListPDA.toBase58(), // extra_account_meta_list
+        mint: mint.toBase58(), // mint
+        tokenProgram: TOKEN_2022_PROGRAM_ID.toBase58(), // token_program
+        tokenProgramOrg: TOKEN_PROGRAM_ID.toBase58(), // token_program
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID.toBase58(), // associated_token_program
+        systemProgram: SystemProgram.programId.toBase58(), // system_program
+        feeConfig: feeConfigPDA.toBase58(), // fee_config
+        wsolMint: NATIVE_MINT_2022.toBase58(), // wsol_mint
+        feeWsolTokenAccount: feeWsolTokenAccount.toBase58(), // fee_wsol_token_account
+        wrapperMint: wrapperMint.toBase58(), // wrapper_mint
+        feeWrapperTokenAccount: feeWrapperTokenAccount.toBase58(), // fee_wrapper_token_account
+        feeRecipientLiquidity: feeRecipientLiquidity.publicKey.toBase58(), // fee_recipient_liquidity
+        feeLiquidityWsolTokenAccount: feeLiquidityWsolTokenAccount.toBase58(), // fee_liquidity_wsol_token_account
+        feeRecipientMarketing: feeRecipientMarketing.publicKey.toBase58(), // fee_recipient_marketing
+        feeMarketingWsolTokenAccount: feeMarketingWsolTokenAccount.toBase58(), // fee_marketing_wsol_token_account
+        feeRecipientHolders: feeRecipientHolders.publicKey.toBase58(),  // fee_recipient_holders
+        feeHoldersWsolTokenAccount: feeHoldersWsolTokenAccount.toBase58() // fee_holders_wsol_token_account
+      })
 
     const initializeExtraAccountMetaListInstruction = await solEarna.methods
       .initializeExtraAccountMetaList(
@@ -243,10 +289,11 @@ describe("sol-earna", () => {
           extraAccountMetaList: extraAccountMetaListPDA, // extra_account_meta_list
           mint: mint, // mint
           tokenProgram: TOKEN_2022_PROGRAM_ID, // token_program
+          tokenProgramOrg: TOKEN_PROGRAM_ID, // token_program
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID, // associated_token_program
           systemProgram: SystemProgram.programId, // system_program
           feeConfig: feeConfigPDA, // fee_config
-          wsolMint: NATIVE_MINT, // wsol_mint
+          wsolMint: NATIVE_MINT_2022, // wsol_mint
           feeWsolTokenAccount, // fee_wsol_token_account
           wrapperMint, // wrapper_mint
           feeWrapperTokenAccount, // fee_wrapper_token_account
@@ -261,6 +308,7 @@ describe("sol-earna", () => {
       .instruction();
 
     const transaction = new Transaction().add(
+      ix1,
       initializeExtraAccountMetaListInstruction
     );
 

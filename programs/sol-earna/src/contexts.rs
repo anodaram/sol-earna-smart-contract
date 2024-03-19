@@ -28,12 +28,14 @@ pub struct InitializeExtraAccountMetaList<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 
+    pub token_program_org: Interface<'info, TokenInterface>,
+
     #[account(
         init_if_needed,
         seeds = [FEE_CONFIG_TAG, mint.key().as_ref()],
         bump,
         payer = payer,
-        space = std::mem::size_of::<FeeConfig>() + 8
+        space = std::mem::size_of::<FeeConfig>() + 8,
     )]
     pub fee_config: Account<'info, FeeConfig>,
 
@@ -41,17 +43,16 @@ pub struct InitializeExtraAccountMetaList<'info> {
     #[account(
         init_if_needed,
         payer = payer,
-        associated_token::mint = wsol_mint,
-        associated_token::authority = payer
+        token::mint = wsol_mint,
+        token::authority = payer,
     )]
     pub fee_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
 
     pub wrapper_mint: InterfaceAccount<'info, Mint>,
     #[account(
-        init_if_needed,
-        payer = payer,
-        associated_token::mint = wrapper_mint,
-        associated_token::authority = payer
+        mut,
+        token::mint = wrapper_mint,
+        token::authority = payer,
     )]
     pub fee_wrapper_token_account: InterfaceAccount<'info, TokenAccount>,
 
@@ -60,8 +61,8 @@ pub struct InitializeExtraAccountMetaList<'info> {
     #[account(
         init_if_needed,
         payer = payer,
-        associated_token::mint = wsol_mint,
-        associated_token::authority = fee_recipient_liquidity
+        token::mint = wsol_mint,
+        token::authority = fee_recipient_liquidity,
     )]
     pub fee_liquidity_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
     #[account(mut)]
@@ -69,8 +70,8 @@ pub struct InitializeExtraAccountMetaList<'info> {
     #[account(
         init_if_needed,
         payer = payer,
-        associated_token::mint = wsol_mint,
-        associated_token::authority = fee_recipient_marketing
+        token::mint = wsol_mint,
+        token::authority = fee_recipient_marketing,
     )]
     pub fee_marketing_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
     #[account(mut)]
@@ -78,8 +79,8 @@ pub struct InitializeExtraAccountMetaList<'info> {
     #[account(
         init_if_needed,
         payer = payer,
-        associated_token::mint = wsol_mint,
-        associated_token::authority = fee_recipient_holders
+        token::mint = wsol_mint,
+        token::authority = fee_recipient_holders,
     )]
     pub fee_holders_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
 }

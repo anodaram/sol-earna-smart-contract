@@ -44,7 +44,7 @@ pub struct CreateTreasury<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
-    pub token_program: Interface<'info, TokenInterface>, // should be TOKEN_PROGRAM_ID (not TOKEN_2022_PROGRAM_ID)
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 #[derive(Accounts)]
@@ -88,7 +88,7 @@ pub struct Stake<'info> {
         token::authority = user,
         seeds = [USER_WRAPPER_TOKEN_ACCOUNT_TAG, wrapper_mint.key().as_ref(), user.key().as_ref()],
         bump,
-        payer = user
+        payer = user,
     )]
     pub user_wrapper_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
@@ -97,6 +97,7 @@ pub struct Stake<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Interface<'info, TokenInterface>, // should be TOKEN_PROGRAM_ID (not TOKEN_2022_PROGRAM_ID)
     pub token_program_treasury: Interface<'info, TokenInterface>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
 #[derive(Accounts)]
