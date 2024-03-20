@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
 
 use anchor_spl::{
-    self, associated_token::AssociatedToken, token_interface::{Mint, TokenAccount, TokenInterface}
+    self,
+    associated_token::AssociatedToken,
+    token_interface::{Mint, TokenAccount, TokenInterface},
 };
 
 use crate::*;
@@ -28,12 +30,14 @@ pub struct CreateTreasury<'info> {
         init_if_needed,
         mint::decimals = treasury_mint.decimals,
         mint::authority = treasury,
-        seeds = [WRAPPER_MINT_TAG, treasury.key().as_ref()],
-        bump,
+        // seeds = [WRAPPER_MINT_TAG, treasury.key().as_ref()],
+        // bump,
         payer = authority,
     )]
     pub wrapper_mint: Box<InterfaceAccount<'info, Mint>>,
 
+    // #[account(mut)]
+    // pub wrapper_mint_auth: Signer<'info>,
     #[account(
         mut,
         token::mint = treasury_mint,
@@ -57,8 +61,7 @@ pub struct Stake<'info> {
     pub treasury: Box<Account<'info, Treasury>>,
     #[account(
         mut,
-        seeds = [WRAPPER_MINT_TAG, treasury.key().as_ref()],
-        bump,
+        constraint = treasury.wrapper_mint == wrapper_mint.key() @ XError::InvalidWrapperMint,
     )]
     pub wrapper_mint: Box<InterfaceAccount<'info, Mint>>,
 
@@ -110,8 +113,7 @@ pub struct Redeem<'info> {
     pub treasury: Box<Account<'info, Treasury>>,
     #[account(
         mut,
-        seeds = [WRAPPER_MINT_TAG, treasury.key().as_ref()],
-        bump,
+        constraint = treasury.wrapper_mint == wrapper_mint.key() @ XError::InvalidWrapperMint,
     )]
     pub wrapper_mint: Box<InterfaceAccount<'info, Mint>>,
 

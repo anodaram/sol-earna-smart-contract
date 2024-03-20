@@ -2,6 +2,11 @@ use anchor_lang::{
     prelude::*,
     system_program::{create_account, CreateAccount},
 };
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token::{burn, mint_to, Burn, MintTo},
+    token_interface::{transfer_checked, TransferChecked},
+};
 use spl_tlv_account_resolution::{account::ExtraAccountMeta, state::ExtraAccountMetaList};
 use spl_transfer_hook_interface::instruction::{ExecuteInstruction, TransferHookInstruction};
 
@@ -19,6 +24,7 @@ use contexts::*;
 
 #[program]
 pub mod sol_earna {
+
     use self::constants::EXTRA_ACCOUNT_METAS_TAG;
 
     use super::*;
@@ -108,6 +114,37 @@ pub mod sol_earna {
 
     pub fn transfer_hook(ctx: Context<TransferHook>, amount: u64) -> Result<()> {
         msg!("Hello Transfer Hook!");
+
+        let fee_config = &mut ctx.accounts.fee_config;
+        let total_fee_percent = fee_config.fee_percent_liquidity
+            + fee_config.fee_percent_marketing
+            + fee_config.fee_percent_holders;
+        
+        let total_fee: u64 = amount * total_fee_percent as u64 / 10000;
+
+        // Step 1: mint total_fee of wrapper_mint to fee_wrapper_token_account
+        mint_to(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                MintTo {
+                    mint: ctx.accounts.wrapper_mint.to_account_info(),
+                    to: ctx.accounts.fee_wrapper_token_account.to_account_info(),
+                    authority: ctx.accounts.fee_config.to_account_info(),
+                }
+            ),
+            total_fee
+        )?;
+
+
+        // Step 2: through raydium, swap from wrapper_mint to wsol
+
+        // Step 3: divide wsol to (wsol_amount_liquidity + wsol_amount_marketing + wsol_amount_holders)
+
+        // Step 4: transfer wsol_amount_liquidity to fee_liquidity_wsol_token_account
+
+        // Step 5: transfer wsol_amount_marketing to fee_marketing_wsol_token_account
+
+        // Step 6: transfer wsol_amount_holders to fee_holders_wsol_token_account
 
         Ok(())
     }

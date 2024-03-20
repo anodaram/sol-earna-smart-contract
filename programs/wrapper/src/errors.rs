@@ -10,5 +10,8 @@ pub enum XError {
     NotAllowed,
 
     #[msg("Invalid Treasury Mint")]
-    InvalidTreasuryMint
+    InvalidTreasuryMint,
+
+    #[msg("Invalid Wrapper Mint")]
+    InvalidWrapperMint
 }

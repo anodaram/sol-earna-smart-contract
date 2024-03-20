@@ -36,8 +36,6 @@ import {
   EXTRA_ACCOUNT_METAS_TAG,
   FEE_CONFIG_TAG,
   TREASURY_TAG,
-  WRAPPER_MINT_TAG,
-  WSOL_TOKEN_ACCOUNT_TAG,
 } from "./constants";
 import { pda } from "./utils";
 
@@ -184,10 +182,8 @@ describe("sol-earna", () => {
       [TREASURY_TAG, mint.toBuffer(), wallet.publicKey.toBuffer()],
       wrapper.programId
     );
-    wrapperMint = await pda(
-      [WRAPPER_MINT_TAG, treasury.toBuffer()],
-      wrapper.programId
-    );
+    const wrapperMintAuth = new Keypair();
+    wrapperMint = wrapperMintAuth.publicKey;
 
     treasuryTokenAccount = getAssociatedTokenAddressSync(
       mint,
@@ -226,7 +222,7 @@ describe("sol-earna", () => {
         systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_2022_PROGRAM_ID,
       })
-      .signers([wallet.payer])
+      .signers([wallet.payer, wrapperMintAuth])
       .rpc();
 
     console.log(`Transaction Signature: ${txSig2}`);
