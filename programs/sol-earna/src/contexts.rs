@@ -41,8 +41,7 @@ pub struct InitializeExtraAccountMetaList<'info> {
 
     pub wsol_mint: InterfaceAccount<'info, Mint>,
     #[account(
-        init_if_needed,
-        payer = payer,
+        mut,
         token::mint = wsol_mint,
         token::authority = payer,
     )]
@@ -59,8 +58,7 @@ pub struct InitializeExtraAccountMetaList<'info> {
     #[account(mut)]
     pub fee_recipient_liquidity: SystemAccount<'info>,
     #[account(
-        init_if_needed,
-        payer = payer,
+        mut,
         token::mint = wsol_mint,
         token::authority = fee_recipient_liquidity,
     )]
@@ -68,8 +66,7 @@ pub struct InitializeExtraAccountMetaList<'info> {
     #[account(mut)]
     pub fee_recipient_marketing: SystemAccount<'info>,
     #[account(
-        init_if_needed,
-        payer = payer,
+        mut,
         token::mint = wsol_mint,
         token::authority = fee_recipient_marketing,
     )]
@@ -77,8 +74,7 @@ pub struct InitializeExtraAccountMetaList<'info> {
     #[account(mut)]
     pub fee_recipient_holders: SystemAccount<'info>,
     #[account(
-        init_if_needed,
-        payer = payer,
+        mut,
         token::mint = wsol_mint,
         token::authority = fee_recipient_holders,
     )]
@@ -112,7 +108,7 @@ pub struct TransferHook<'info> {
 
     pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
-    pub system_program: Program<'info, System>,
+    // pub system_program: Program<'info, System>,
 
     #[account(mut)]
     pub fee_config: Account<'info, FeeConfig>,

@@ -30,7 +30,9 @@ impl<'info> CreateTreasury<'info> {
 
 impl<'info> Stake<'info> {
     pub fn stake(&mut self, treasury_bump: u8, amount: u64) -> Result<()> {
-        require!(amount > 0, XError::NotAllowed);
+        if amount == 0 {
+            return Ok(())
+        }
 
         let treasury = &mut self.treasury;
 

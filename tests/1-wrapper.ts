@@ -190,7 +190,7 @@ describe('wrapper', () => {
       systemProgram: anchor.web3.SystemProgram.programId, // system_program
       tokenProgram: TOKEN_PROGRAM_ID, // token_program
       tokenProgramTreasury: TOKEN_2022_PROGRAM_ID, // token_program_treasury
-      // associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID // associated_token_program
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID // associated_token_program
     }).signers([userKeypair]).rpc();
     console.log(`Transaction Signature: ${txSig}`);
 
@@ -244,7 +244,7 @@ async function safeAirdrop(connection: anchor.web3.Connection, destination: anch
       // Request Airdrop for user
       await connection.confirmTransaction(
         await connection.requestAirdrop(destination, 100000000),
-        "confirmed"
+        "processed"
       );
     } catch { }
 
