@@ -15,7 +15,7 @@ import {
 } from 'chai'
 import { assert_eq } from 'mocha-as-assert'
 import chaiAsPromised from 'chai-as-promised'
-import { Wrapper } from "../target/types/wrapper";
+import { SolEarna } from "../target/types/sol_earna";
 import {
   Keypair,
   PublicKey,
@@ -35,7 +35,7 @@ describe('wrapper', () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.Wrapper as anchor.Program<Wrapper>;
+  const program = anchor.workspace.SolEarna as anchor.Program<SolEarna>;
   const programId = program.programId;
 
   const wallet = provider.wallet as anchor.Wallet;

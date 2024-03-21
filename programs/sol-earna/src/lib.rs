@@ -7,7 +7,9 @@ use anchor_spl::{
     token::{burn, mint_to, Burn, MintTo},
     token_interface::{transfer_checked, TransferChecked},
 };
-use spl_tlv_account_resolution::{account::ExtraAccountMeta, state::ExtraAccountMetaList};
+use spl_tlv_account_resolution::{
+    account::ExtraAccountMeta, seeds::Seed, state::ExtraAccountMetaList,
+};
 use spl_transfer_hook_interface::instruction::{ExecuteInstruction, TransferHookInstruction};
 
 declare_id!("2me2g1K7KVA7RBhg1rcbpxRvCknd4v1UCA8RMEjm3hmg");
@@ -25,7 +27,7 @@ use contexts::*;
 #[program]
 pub mod sol_earna {
 
-    use self::constants::EXTRA_ACCOUNT_METAS_TAG;
+    use self::constants::{EXTRA_ACCOUNT_METAS_TAG, TREASURY_TAG};
 
     use super::*;
 
@@ -42,6 +44,15 @@ pub mod sol_earna {
             ExtraAccountMeta::new_with_pubkey(&_a.associated_token_program.key(), false, true)?,
             // ExtraAccountMeta::new_with_pubkey(&_a.system_program.key(), false, true)?,
             ExtraAccountMeta::new_with_pubkey(&_a.fee_config.key(), false, true)?,
+            ExtraAccountMeta::new_with_seeds(
+                &[
+                    Seed::Literal {bytes: TREASURY_TAG.to_vec()}, // TODO: need to change for using TREASURY_TAG
+                    Seed::Literal {bytes: _a.treasury.treasury_mint.as_ref().to_vec()},
+                    Seed::Literal {bytes: _a.treasury.authority.as_ref().to_vec()},
+                ],
+                false,
+                true,
+            )?,
             ExtraAccountMeta::new_with_pubkey(&_a.wsol_mint.key(), false, true)?,
             ExtraAccountMeta::new_with_pubkey(&_a.fee_wsol_token_account.key(), false, true)?,
             ExtraAccountMeta::new_with_pubkey(&_a.wrapper_mint.key(), false, true)?,
@@ -115,12 +126,20 @@ pub mod sol_earna {
     pub fn transfer_hook(ctx: Context<TransferHook>, amount: u64) -> Result<()> {
         msg!("Hello Transfer Hook!");
 
+        let signer_seeds: &[&[&[u8]]] = &[&[
+            TREASURY_TAG,
+            ctx.accounts.treasury.treasury_mint.as_ref(),
+            ctx.accounts.treasury.authority.as_ref(),
+            &[ctx.bumps.treasury],
+        ]];
+
         let fee_config = &mut ctx.accounts.fee_config;
         let total_fee_percent = fee_config.fee_percent_liquidity
             + fee_config.fee_percent_marketing
             + fee_config.fee_percent_holders;
-        
+
         let total_fee: u64 = amount * total_fee_percent as u64 / 10000;
+        msg!("total_fee: {}", total_fee);
 
         // Step 1: mint total_fee of wrapper_mint to fee_wrapper_token_account
         mint_to(
@@ -129,12 +148,12 @@ pub mod sol_earna {
                 MintTo {
                     mint: ctx.accounts.wrapper_mint.to_account_info(),
                     to: ctx.accounts.fee_wrapper_token_account.to_account_info(),
-                    authority: ctx.accounts.fee_config.to_account_info(),
-                }
+                    authority: ctx.accounts.treasury.to_account_info(),
+                },
             ),
-            total_fee
+            // .with_signer(signer_seeds),
+            total_fee,
         )?;
-
 
         // Step 2: through raydium, swap from wrapper_mint to wsol
 
@@ -168,6 +187,17 @@ pub mod sol_earna {
             }
             _ => return Err(ProgramError::InvalidInstructionData.into()),
         }
+    }
+
+    pub fn create_treasury(ctx: Context<CreateTreasury>) -> Result<()> {
+        ctx.accounts.create_treasury()
+    }
+
+    pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
+        ctx.accounts.stake(ctx.bumps.treasury, amount)
+    }
+    pub fn redeem(ctx: Context<Redeem>, amount: u64) -> Result<()> {
+        ctx.accounts.redeem(ctx.bumps.treasury, amount)
     }
 }
 

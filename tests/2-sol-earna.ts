@@ -3,7 +3,6 @@ import { Program } from "@coral-xyz/anchor";
 import { pack, TokenMetadata } from "@solana/spl-token-metadata";
 
 import { SolEarna } from "../target/types/sol_earna";
-import { Wrapper } from "../target/types/wrapper";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
@@ -45,8 +44,7 @@ describe("sol-earna", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
-  const solEarna = anchor.workspace.SolEarna as Program<SolEarna>;
-  const wrapper = anchor.workspace.Wrapper as Program<Wrapper>;
+  const program = anchor.workspace.SolEarna as Program<SolEarna>;
 
   const provider = anchor.AnchorProvider.env();
   const wallet = provider.wallet as anchor.Wallet;
@@ -70,12 +68,12 @@ describe("sol-earna", () => {
 
   const [extraAccountMetaListPDA] = PublicKey.findProgramAddressSync(
     [EXTRA_ACCOUNT_METAS_TAG, mint.toBuffer()],
-    solEarna.programId
+    program.programId
   );
 
   const [feeConfigPDA] = PublicKey.findProgramAddressSync(
     [FEE_CONFIG_TAG, mint.toBuffer()],
-    solEarna.programId
+    program.programId
   );
 
   it("Initialize!", async () => {});
@@ -116,7 +114,7 @@ describe("sol-earna", () => {
       createInitializeTransferHookInstruction(
         mint,
         wallet.publicKey,
-        solEarna.programId, // Transfer Hook Program ID
+        program.programId, // Transfer Hook Program ID
         TOKEN_2022_PROGRAM_ID
       ),
       createInitializeTransferFeeConfigInstruction(
@@ -180,7 +178,7 @@ describe("sol-earna", () => {
   it("Create Treasury for Wrapper Mint", async () => {
     treasury = await pda(
       [TREASURY_TAG, mint.toBuffer(), wallet.publicKey.toBuffer()],
-      wrapper.programId
+      program.programId
     );
     const wrapperMintAuth = new Keypair();
     wrapperMint = wrapperMintAuth.publicKey;
@@ -211,7 +209,7 @@ describe("sol-earna", () => {
     );
     console.log(`Transaction Signature: ${txSig}`);
 
-    const txSig2 = await wrapper.methods
+    const txSig2 = await program.methods
       .createTreasury()
       .accounts({
         treasury,
@@ -227,7 +225,7 @@ describe("sol-earna", () => {
 
     console.log(`Transaction Signature: ${txSig2}`);
 
-    const treasuryData = await wrapper.account.treasury.fetch(treasury);
+    const treasuryData = await program.account.treasury.fetch(treasury);
     console.log({ treasuryData });
   });
 
@@ -327,7 +325,7 @@ describe("sol-earna", () => {
       feeHoldersWsolTokenAccount: feeHoldersWsolTokenAccount.toBase58(), // fee_holders_wsol_token_account
     });
 
-    const initializeExtraAccountMetaListInstruction = await solEarna.methods
+    const initializeExtraAccountMetaListInstruction = await program.methods
       .initializeExtraAccountMetaList(
         FEE_PERCENT_HOLDERS,
         FEE_PERCENT_MARKETING,
@@ -342,6 +340,7 @@ describe("sol-earna", () => {
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID, // associated_token_program
         systemProgram: SystemProgram.programId, // system_program
         feeConfig: feeConfigPDA, // fee_config
+        treasury, // treasury
         wsolMint: NATIVE_MINT, // wsol_mint
         feeWsolTokenAccount, // fee_wsol_token_account
         wrapperMint, // wrapper_mint
@@ -451,23 +450,9 @@ describe("sol-earna", () => {
   it("Transfer Token", async () => {
     const amount = 1 * 10 ** decimals;
     const bigIntAmount = BigInt(amount);
-    const balanceSourceBefore = (
-      await getAccount(
-        connection,
-        sourceTokenAccount,
-        "processed",
-        TOKEN_2022_PROGRAM_ID
-      )
-    ).amount;
-    const balanceDestinationBefore = (
-      await getAccount(
-        connection,
-        destinationTokenAccount,
-        "processed",
-        TOKEN_2022_PROGRAM_ID
-      )
-    ).amount;
-    PUT_LOG && console.log({ balanceSourceBefore, balanceDestinationBefore });
+    const balanceSourceBefore = await getTokenBalance(sourceTokenAccount);
+    const balanceDestinationBefore = await getTokenBalance(destinationTokenAccount);
+    console.log({ balanceSourceBefore, balanceDestinationBefore });
 
     // Standard token transfer instruction
     const transferInstruction =
@@ -494,22 +479,19 @@ describe("sol-earna", () => {
     );
     PUT_LOG && console.log("Transfer Signature:", txSig);
 
-    const balanceSourceAfter = (
-      await getAccount(
-        connection,
-        sourceTokenAccount,
-        "processed",
-        TOKEN_2022_PROGRAM_ID
-      )
-    ).amount;
-    const balanceDestinationAfter = (
-      await getAccount(
-        connection,
-        destinationTokenAccount,
-        "processed",
-        TOKEN_2022_PROGRAM_ID
-      )
-    ).amount;
-    PUT_LOG && console.log({ balanceSourceAfter, balanceDestinationAfter });
+    const balanceSourceAfter = await getTokenBalance(sourceTokenAccount);
+    const balanceDestinationAfter = await getTokenBalance(destinationTokenAccount);
+    console.log({ balanceSourceAfter, balanceDestinationAfter });
+
+    const wrapperBalance = await getTokenBalance(feeWrapperTokenAccount);
+    console.log({ wrapperBalance });
   });
+
+  const getTokenBalance = async (
+    tokenAccount: PublicKey,
+    programId: PublicKey = TOKEN_2022_PROGRAM_ID
+  ) => {
+    return (await getAccount(connection, tokenAccount, "processed", programId))
+      .amount;
+  };
 });

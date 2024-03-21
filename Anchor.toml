@@ -6,7 +6,6 @@ skip-lint = false
 
 [programs.localnet]
 sol_earna = "2me2g1K7KVA7RBhg1rcbpxRvCknd4v1UCA8RMEjm3hmg"
-wrapper = "3ZgdeiLicn4YBxDokpmYuitsAonCtnLPnXtbwLPn8WCa"
 
 [registry]
 url = "https://api.apr.dev"
