@@ -177,7 +177,7 @@ describe("sol-earna", () => {
 
   it("Create Treasury for Wrapper Mint", async () => {
     treasury = await pda(
-      [TREASURY_TAG, mint.toBuffer(), wallet.publicKey.toBuffer()],
+      [TREASURY_TAG, mint.toBuffer()],
       program.programId
     );
     const wrapperMintAuth = new Keypair();
@@ -336,7 +336,7 @@ describe("sol-earna", () => {
         extraAccountMetaList: extraAccountMetaListPDA, // extra_account_meta_list
         mint: mint, // mint
         tokenProgram: TOKEN_PROGRAM_ID, // token_program
-        tokenProgramOrg: TOKEN_PROGRAM_ID, // token_program
+        tokenProgramOrg: TOKEN_2022_PROGRAM_ID, // token_program
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID, // associated_token_program
         systemProgram: SystemProgram.programId, // system_program
         feeConfig: feeConfigPDA, // fee_config

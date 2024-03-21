@@ -22,13 +22,11 @@ mod processors;
 mod states;
 mod utils;
 
+use constants::*;
 use contexts::*;
 
 #[program]
 pub mod sol_earna {
-
-    use self::constants::{EXTRA_ACCOUNT_METAS_TAG, TREASURY_TAG};
-
     use super::*;
 
     pub fn initialize_extra_account_meta_list(
@@ -37,26 +35,36 @@ pub mod sol_earna {
         fee_percent_marketing: u16,
         fee_percent_liquidity: u16,
     ) -> Result<()> {
+        msg!(
+            "fee_wrapper_token_account {:?}",
+            ctx.accounts.fee_wrapper_token_account.to_account_info()
+        );
         let _a = &ctx.accounts;
+
         // The `addExtraAccountsToInstruction` JS helper function resolving incorrectly
         let account_metas = vec![
-            ExtraAccountMeta::new_with_pubkey(&_a.token_program.key(), false, true)?,
-            ExtraAccountMeta::new_with_pubkey(&_a.associated_token_program.key(), false, true)?,
-            // ExtraAccountMeta::new_with_pubkey(&_a.system_program.key(), false, true)?,
-            ExtraAccountMeta::new_with_pubkey(&_a.fee_config.key(), false, true)?,
+            // source: 0
+            // mint: 1
+            // destination: 2
+            // owner: 3
+            // ExtraAccountMetaList: 4
+            ExtraAccountMeta::new_with_pubkey(&_a.token_program.key(), false, false)?, // 5
+            ExtraAccountMeta::new_with_pubkey(&_a.associated_token_program.key(), false, true)?, // 6
+            ExtraAccountMeta::new_with_pubkey(&_a.fee_config.key(), false, true)?, // 7
             ExtraAccountMeta::new_with_seeds(
                 &[
-                    Seed::Literal {bytes: TREASURY_TAG.to_vec()}, // TODO: need to change for using TREASURY_TAG
-                    Seed::Literal {bytes: _a.treasury.treasury_mint.as_ref().to_vec()},
-                    Seed::Literal {bytes: _a.treasury.authority.as_ref().to_vec()},
+                    Seed::Literal {
+                        bytes: TREASURY_TAG.to_vec(),
+                    },
+                    Seed::AccountKey { index: 1 }, // treasury_mint
                 ],
                 false,
                 true,
-            )?,
-            ExtraAccountMeta::new_with_pubkey(&_a.wsol_mint.key(), false, true)?,
-            ExtraAccountMeta::new_with_pubkey(&_a.fee_wsol_token_account.key(), false, true)?,
-            ExtraAccountMeta::new_with_pubkey(&_a.wrapper_mint.key(), false, true)?,
-            ExtraAccountMeta::new_with_pubkey(&_a.fee_wrapper_token_account.key(), false, true)?,
+            )?, // 8
+            ExtraAccountMeta::new_with_pubkey(&_a.wsol_mint.key(), false, true)?,  // 9
+            ExtraAccountMeta::new_with_pubkey(&_a.fee_wsol_token_account.key(), false, true)?, // 10
+            ExtraAccountMeta::new_with_pubkey(&_a.wrapper_mint.key(), false, true)?, // 11
+            ExtraAccountMeta::new_with_pubkey(&_a.fee_wrapper_token_account.key(), false, true)?, // 12
             ExtraAccountMeta::new_with_pubkey(&_a.fee_recipient_liquidity.key(), false, true)?,
             ExtraAccountMeta::new_with_pubkey(
                 &_a.fee_liquidity_wsol_token_account.key(),
@@ -74,6 +82,11 @@ pub mod sol_earna {
                 &_a.fee_holders_wsol_token_account.key(),
                 false,
                 true,
+            )?,
+            ExtraAccountMeta::new_with_pubkey(
+                &_a.token_program_org.key(),
+                false,
+                false,
             )?,
         ];
 
@@ -124,12 +137,9 @@ pub mod sol_earna {
     }
 
     pub fn transfer_hook(ctx: Context<TransferHook>, amount: u64) -> Result<()> {
-        msg!("Hello Transfer Hook!");
-
         let signer_seeds: &[&[&[u8]]] = &[&[
             TREASURY_TAG,
             ctx.accounts.treasury.treasury_mint.as_ref(),
-            ctx.accounts.treasury.authority.as_ref(),
             &[ctx.bumps.treasury],
         ]];
 
@@ -139,7 +149,6 @@ pub mod sol_earna {
             + fee_config.fee_percent_holders;
 
         let total_fee: u64 = amount * total_fee_percent as u64 / 10000;
-        msg!("total_fee: {}", total_fee);
 
         // Step 1: mint total_fee of wrapper_mint to fee_wrapper_token_account
         mint_to(
@@ -150,8 +159,8 @@ pub mod sol_earna {
                     to: ctx.accounts.fee_wrapper_token_account.to_account_info(),
                     authority: ctx.accounts.treasury.to_account_info(),
                 },
-            ),
-            // .with_signer(signer_seeds),
+            )
+            .with_signer(signer_seeds),
             total_fee,
         )?;
 

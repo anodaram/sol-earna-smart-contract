@@ -29,8 +29,6 @@ pub struct InitializeExtraAccountMetaList<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 
-    pub token_program_org: Interface<'info, TokenInterface>,
-
     #[account(
         init_if_needed,
         seeds = [FEE_CONFIG_TAG, mint.key().as_ref()],
@@ -42,7 +40,7 @@ pub struct InitializeExtraAccountMetaList<'info> {
 
     #[account(
         mut,
-        seeds = [TREASURY_TAG, treasury.treasury_mint.as_ref(), treasury.authority.as_ref()],
+        seeds = [TREASURY_TAG, treasury.treasury_mint.as_ref()],
         bump,
     )]
     pub treasury: Account<'info, Treasury>,
@@ -87,6 +85,8 @@ pub struct InitializeExtraAccountMetaList<'info> {
         token::authority = fee_recipient_holders,
     )]
     pub fee_holders_wsol_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    pub token_program_org: Interface<'info, TokenInterface>,
 }
 
 // Order of accounts matters for this struct.
@@ -99,55 +99,57 @@ pub struct TransferHook<'info> {
         token::mint = mint, 
         token::authority = owner,
     )]
-    pub source_token: InterfaceAccount<'info, TokenAccount>,
-    pub mint: InterfaceAccount<'info, Mint>,
+    pub source_token: InterfaceAccount<'info, TokenAccount>, // 0
+    pub mint: InterfaceAccount<'info, Mint>, // 1
     #[account(
         token::mint = mint,
     )]
-    pub destination_token: InterfaceAccount<'info, TokenAccount>,
+    pub destination_token: InterfaceAccount<'info, TokenAccount>, // 2
     /// CHECK: source token account owner, can be SystemAccount or PDA owned by another program
-    pub owner: UncheckedAccount<'info>,
+    pub owner: UncheckedAccount<'info>, // 3
     /// CHECK: ExtraAccountMetaList Account,
     #[account(
         seeds = [b"extra-account-metas", mint.key().as_ref()], 
         bump
     )]
-    pub extra_account_meta_list: UncheckedAccount<'info>,
+    pub extra_account_meta_list: UncheckedAccount<'info>, // 4
 
-    pub token_program: Interface<'info, TokenInterface>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub token_program: Interface<'info, TokenInterface>, // 5
+    pub associated_token_program: Program<'info, AssociatedToken>, // 6
     // pub system_program: Program<'info, System>,
 
     #[account(mut)]
-    pub fee_config: Account<'info, FeeConfig>,
+    pub fee_config: Box<Account<'info, FeeConfig>>, // 7
 
     #[account(
         mut,
-        seeds = [TREASURY_TAG, treasury.treasury_mint.as_ref(), treasury.authority.as_ref()],
+        seeds = [TREASURY_TAG, treasury.treasury_mint.as_ref()],
         bump,
     )]
-    pub treasury: Account<'info, Treasury>,
+    pub treasury: Box<Account<'info, Treasury>>, // 8
 
-    pub wsol_mint: InterfaceAccount<'info, Mint>,
+    pub wsol_mint: Box<InterfaceAccount<'info, Mint>>, // 9
     #[account(mut)]
-    pub fee_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub fee_wsol_token_account: Box<InterfaceAccount<'info, TokenAccount>>, // 10
 
-    pub wrapper_mint: InterfaceAccount<'info, Mint>,
+    pub wrapper_mint: Box<InterfaceAccount<'info, Mint>>, // 11
     #[account(mut)]
-    pub fee_wrapper_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub fee_wrapper_token_account: Box<InterfaceAccount<'info, TokenAccount>>, // 12
 
     #[account(mut)]
     pub fee_recipient_liquidity: SystemAccount<'info>,
     #[account(mut)]
-    pub fee_liquidity_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub fee_liquidity_wsol_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(mut)]
     pub fee_recipient_marketing: SystemAccount<'info>,
     #[account(mut)]
-    pub fee_marketing_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub fee_marketing_wsol_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(mut)]
     pub fee_recipient_holders: SystemAccount<'info>,
     #[account(mut)]
-    pub fee_holders_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub fee_holders_wsol_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    pub token_program_org: Interface<'info, TokenInterface>,
 }
 
 
@@ -156,7 +158,7 @@ pub struct TransferHook<'info> {
 pub struct CreateTreasury<'info> {
     #[account(
         init,
-        seeds = [TREASURY_TAG, treasury_mint.key().as_ref(), authority.key().as_ref()],
+        seeds = [TREASURY_TAG, treasury_mint.key().as_ref()],
         bump,
         payer = authority,
         space = std::mem::size_of::<Treasury>() + 8
@@ -193,7 +195,7 @@ pub struct CreateTreasury<'info> {
 #[instruction(amount: u64)]
 pub struct Stake<'info> {
     #[account(
-        seeds = [TREASURY_TAG, treasury.treasury_mint.as_ref(), treasury.authority.as_ref()],
+        seeds = [TREASURY_TAG, treasury.treasury_mint.as_ref()],
         bump,
     )]
     pub treasury: Box<Account<'info, Treasury>>,
@@ -245,7 +247,7 @@ pub struct Stake<'info> {
 #[instruction(amount: u64)]
 pub struct Redeem<'info> {
     #[account(
-        seeds = [TREASURY_TAG, treasury.treasury_mint.as_ref(), treasury.authority.as_ref()],
+        seeds = [TREASURY_TAG, treasury.treasury_mint.as_ref()],
         bump,
     )]
     pub treasury: Box<Account<'info, Treasury>>,

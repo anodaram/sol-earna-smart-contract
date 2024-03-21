@@ -39,7 +39,6 @@ impl<'info> Stake<'info> {
         let signer_seeds: &[&[&[u8]]] = &[&[
             TREASURY_TAG,
             treasury.treasury_mint.as_ref(),
-            treasury.authority.as_ref(),
             &[treasury_bump],
         ]];
 
@@ -90,7 +89,6 @@ impl<'info> Redeem<'info> {
         let signer_seeds: &[&[&[u8]]] = &[&[
             TREASURY_TAG,
             treasury.treasury_mint.as_ref(),
-            treasury.authority.as_ref(),
             &[treasury_bump],
         ]];
 
