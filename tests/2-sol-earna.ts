@@ -225,7 +225,7 @@ describe("sol-earna", () => {
         treasuryTokenAccount,
         authority: wallet.publicKey,
         systemProgram: SystemProgram.programId,
-        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .signers([wallet.payer, wrapperMintAuth])
       .rpc();
@@ -241,7 +241,7 @@ describe("sol-earna", () => {
       wrapperMint,
       delegatePDA,
       true,
-      TOKEN_2022_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
     feeWsolTokenAccount = getAssociatedTokenAddressSync(
@@ -275,7 +275,7 @@ describe("sol-earna", () => {
         feeWrapperTokenAccount,
         delegatePDA,
         wrapperMint,
-        TOKEN_2022_PROGRAM_ID,
+        TOKEN_PROGRAM_ID,
         ASSOCIATED_TOKEN_PROGRAM_ID
       ),
       // createAssociatedTokenAccountInstruction(
@@ -497,7 +497,7 @@ describe("sol-earna", () => {
     const balanceDestinationAfter = await getTokenBalance(destinationTokenAccount);
     console.log({ balanceSourceAfter, balanceDestinationAfter });
 
-    const wrapperBalance = await getTokenBalance(feeWrapperTokenAccount);
+    const wrapperBalance = await getTokenBalance(feeWrapperTokenAccount, TOKEN_PROGRAM_ID);
     console.log({ wrapperBalance });
   });
 

@@ -27,6 +27,8 @@ use contexts::*;
 
 #[program]
 pub mod sol_earna {
+    // use anchor_spl::token::spl_token::instruction::mint_to;
+
     use super::*;
 
     pub fn initialize_extra_account_meta_list(
@@ -84,8 +86,8 @@ pub mod sol_earna {
                 7, // associated token program index
                 &[
                     Seed::AccountKey { index: 8 }, // owner index
-                    Seed::AccountKey { index: 5 }, // token program index
-                    Seed::AccountKey { index: 13 }, // wsol mint index
+                    Seed::AccountKey { index: 6 }, // token program index
+                    Seed::AccountKey { index: 13 }, // wrapper mint index
                 ],
                 false, // is_signer
                 true,  // is_writable
@@ -167,11 +169,6 @@ pub mod sol_earna {
                 ctx.accounts.treasury.treasury_mint.as_ref(),
                 &[ctx.bumps.treasury],
             ],
-            &[
-                DELEGATE_TAG,
-                ctx.accounts.treasury.treasury_mint.as_ref(),
-                &[ctx.bumps.delegate],
-            ],
         ];
 
         let fee_config = &mut ctx.accounts.fee_config;
@@ -191,7 +188,6 @@ pub mod sol_earna {
                     authority: ctx.accounts.treasury.to_account_info(),
                 },
             )
-            .with_remaining_accounts(ctx.accounts.to_account_infos())
             .with_signer(signer_seeds),
             total_fee,
         )?;
