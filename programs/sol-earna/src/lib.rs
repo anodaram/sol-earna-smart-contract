@@ -35,10 +35,6 @@ pub mod sol_earna {
         fee_percent_marketing: u16,
         fee_percent_liquidity: u16,
     ) -> Result<()> {
-        msg!(
-            "fee_wrapper_token_account {:?}",
-            ctx.accounts.fee_wrapper_token_account.to_account_info()
-        );
         let _a = &ctx.accounts;
 
         // The `addExtraAccountsToInstruction` JS helper function resolving incorrectly
@@ -49,22 +45,51 @@ pub mod sol_earna {
             // owner: 3
             // ExtraAccountMetaList: 4
             ExtraAccountMeta::new_with_pubkey(&_a.token_program.key(), false, false)?, // 5
-            ExtraAccountMeta::new_with_pubkey(&_a.associated_token_program.key(), false, true)?, // 6
-            ExtraAccountMeta::new_with_pubkey(&_a.fee_config.key(), false, true)?, // 7
+            ExtraAccountMeta::new_with_pubkey(&_a.token_program_org.key(), false, false)?, // 6
+            ExtraAccountMeta::new_with_pubkey(&_a.associated_token_program.key(), false, false)?, // 7
             ExtraAccountMeta::new_with_seeds(
                 &[
                     Seed::Literal {
-                        bytes: TREASURY_TAG.to_vec(),
+                        bytes: "delegate".as_bytes().to_vec(),
                     },
                     Seed::AccountKey { index: 1 }, // treasury_mint
                 ],
                 false,
                 true,
             )?, // 8
-            ExtraAccountMeta::new_with_pubkey(&_a.wsol_mint.key(), false, true)?,  // 9
-            ExtraAccountMeta::new_with_pubkey(&_a.fee_wsol_token_account.key(), false, true)?, // 10
-            ExtraAccountMeta::new_with_pubkey(&_a.wrapper_mint.key(), false, true)?, // 11
-            ExtraAccountMeta::new_with_pubkey(&_a.fee_wrapper_token_account.key(), false, true)?, // 12
+            ExtraAccountMeta::new_with_pubkey(&_a.fee_config.key(), false, true)?, // 9
+            ExtraAccountMeta::new_with_seeds(
+                &[
+                    Seed::Literal {
+                        bytes: "treasury".as_bytes().to_vec(),
+                    },
+                    Seed::AccountKey { index: 1 }, // treasury_mint
+                ],
+                false,
+                true,
+            )?, // 10
+            ExtraAccountMeta::new_with_pubkey(&_a.wsol_mint.key(), false, true)?,  // 11
+            ExtraAccountMeta::new_external_pda_with_seeds( // 12. fee_wsol_token_account
+                7, // associated token program index
+                &[
+                    Seed::AccountKey { index: 8 }, // owner index
+                    Seed::AccountKey { index: 6 }, // token program index
+                    Seed::AccountKey { index: 11 }, // wsol mint index
+                ],
+                false, // is_signer
+                true,  // is_writable
+            )?,
+            ExtraAccountMeta::new_with_pubkey(&_a.wrapper_mint.key(), false, true)?, // 13
+            ExtraAccountMeta::new_external_pda_with_seeds( // 14. fee_wrapper_token_account
+                7, // associated token program index
+                &[
+                    Seed::AccountKey { index: 8 }, // owner index
+                    Seed::AccountKey { index: 5 }, // token program index
+                    Seed::AccountKey { index: 13 }, // wsol mint index
+                ],
+                false, // is_signer
+                true,  // is_writable
+            )?,
             ExtraAccountMeta::new_with_pubkey(&_a.fee_recipient_liquidity.key(), false, true)?,
             ExtraAccountMeta::new_with_pubkey(
                 &_a.fee_liquidity_wsol_token_account.key(),
@@ -77,17 +102,12 @@ pub mod sol_earna {
                 false,
                 true,
             )?,
-            ExtraAccountMeta::new_with_pubkey(&_a.fee_recipient_holders.key(), false, true)?,
-            ExtraAccountMeta::new_with_pubkey(
-                &_a.fee_holders_wsol_token_account.key(),
-                false,
-                true,
-            )?,
-            ExtraAccountMeta::new_with_pubkey(
-                &_a.token_program_org.key(),
-                false,
-                false,
-            )?,
+            // ExtraAccountMeta::new_with_pubkey(&_a.fee_recipient_holders.key(), false, true)?,
+            // ExtraAccountMeta::new_with_pubkey(
+            //     &_a.fee_holders_wsol_token_account.key(),
+            //     false,
+            //     true,
+            // )?,
         ];
 
         // calculate account size
@@ -137,11 +157,22 @@ pub mod sol_earna {
     }
 
     pub fn transfer_hook(ctx: Context<TransferHook>, amount: u64) -> Result<()> {
-        let signer_seeds: &[&[&[u8]]] = &[&[
-            TREASURY_TAG,
-            ctx.accounts.treasury.treasury_mint.as_ref(),
-            &[ctx.bumps.treasury],
-        ]];
+        msg!(
+            "fee_wsol_token_account {:?}",
+            ctx.accounts.fee_wsol_token_account.to_account_info().key()
+        );
+        let signer_seeds: &[&[&[u8]]] = &[
+            &[
+                TREASURY_TAG,
+                ctx.accounts.treasury.treasury_mint.as_ref(),
+                &[ctx.bumps.treasury],
+            ],
+            &[
+                DELEGATE_TAG,
+                ctx.accounts.treasury.treasury_mint.as_ref(),
+                &[ctx.bumps.delegate],
+            ],
+        ];
 
         let fee_config = &mut ctx.accounts.fee_config;
         let total_fee_percent = fee_config.fee_percent_liquidity
@@ -153,13 +184,14 @@ pub mod sol_earna {
         // Step 1: mint total_fee of wrapper_mint to fee_wrapper_token_account
         mint_to(
             CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
+                ctx.accounts.token_program_org.to_account_info(),
                 MintTo {
                     mint: ctx.accounts.wrapper_mint.to_account_info(),
                     to: ctx.accounts.fee_wrapper_token_account.to_account_info(),
                     authority: ctx.accounts.treasury.to_account_info(),
                 },
             )
+            .with_remaining_accounts(ctx.accounts.to_account_infos())
             .with_signer(signer_seeds),
             total_fee,
         )?;

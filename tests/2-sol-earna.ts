@@ -18,6 +18,7 @@ import {
   getAccount,
   getAssociatedTokenAddressSync,
   getMintLen,
+  getOrCreateAssociatedTokenAccount,
   LENGTH_SIZE,
   NATIVE_MINT,
   TOKEN_2022_PROGRAM_ID,
@@ -32,6 +33,7 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import {
+  DELEGATE_TAG,
   EXTRA_ACCOUNT_METAS_TAG,
   FEE_CONFIG_TAG,
   TREASURY_TAG,
@@ -73,6 +75,11 @@ describe("sol-earna", () => {
 
   const [feeConfigPDA] = PublicKey.findProgramAddressSync(
     [FEE_CONFIG_TAG, mint.toBuffer()],
+    program.programId
+  );
+
+  const [delegatePDA] = PublicKey.findProgramAddressSync(
+    [DELEGATE_TAG, mint.toBuffer()],
     program.programId
   );
 
@@ -232,14 +239,15 @@ describe("sol-earna", () => {
   it("Prepare accounts", async () => {
     feeWrapperTokenAccount = getAssociatedTokenAddressSync(
       wrapperMint,
-      wallet.publicKey,
-      false,
+      delegatePDA,
+      true,
       TOKEN_2022_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
     feeWsolTokenAccount = getAssociatedTokenAddressSync(
       NATIVE_MINT,
-      wallet.publicKey
+      delegatePDA,
+      true
     );
     feeLiquidityWsolTokenAccount = getAssociatedTokenAddressSync(
       NATIVE_MINT,
@@ -253,22 +261,30 @@ describe("sol-earna", () => {
       NATIVE_MINT,
       feeRecipientHolders.publicKey
     );
+    await getOrCreateAssociatedTokenAccount(
+      connection,
+      wallet.payer,
+      NATIVE_MINT,
+      delegatePDA,
+      true
+    );
 
     const transaction = new Transaction().add(
       createAssociatedTokenAccountInstruction(
         wallet.publicKey,
         feeWrapperTokenAccount,
-        wallet.publicKey,
+        delegatePDA,
         wrapperMint,
         TOKEN_2022_PROGRAM_ID,
         ASSOCIATED_TOKEN_PROGRAM_ID
       ),
-      createAssociatedTokenAccountInstruction(
-        wallet.publicKey,
-        feeWsolTokenAccount,
-        wallet.publicKey,
-        NATIVE_MINT
-      ),
+      // createAssociatedTokenAccountInstruction(
+      //   wallet.publicKey,
+      //   feeWsolTokenAccount,
+      //   delegatePDA,
+      //   NATIVE_MINT,
+
+      // ),
       createAssociatedTokenAccountInstruction(
         wallet.publicKey,
         feeLiquidityWsolTokenAccount,
@@ -335,16 +351,14 @@ describe("sol-earna", () => {
         payer: wallet.publicKey, // payer
         extraAccountMetaList: extraAccountMetaListPDA, // extra_account_meta_list
         mint: mint, // mint
-        tokenProgram: TOKEN_PROGRAM_ID, // token_program
-        tokenProgramOrg: TOKEN_2022_PROGRAM_ID, // token_program
+        tokenProgram: TOKEN_2022_PROGRAM_ID, // token_program
+        tokenProgramOrg: TOKEN_PROGRAM_ID, // token_program
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID, // associated_token_program
         systemProgram: SystemProgram.programId, // system_program
         feeConfig: feeConfigPDA, // fee_config
         treasury, // treasury
         wsolMint: NATIVE_MINT, // wsol_mint
-        feeWsolTokenAccount, // fee_wsol_token_account
         wrapperMint, // wrapper_mint
-        feeWrapperTokenAccount, // fee_wrapper_token_account
         feeRecipientLiquidity: feeRecipientLiquidity.publicKey, // fee_recipient_liquidity
         feeLiquidityWsolTokenAccount, // fee_liquidity_wsol_token_account
         feeRecipientMarketing: feeRecipientMarketing.publicKey, // fee_recipient_marketing

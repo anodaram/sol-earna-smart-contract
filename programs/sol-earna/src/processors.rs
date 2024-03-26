@@ -65,7 +65,6 @@ impl<'info> Stake<'info> {
                     authority: treasury.to_account_info(),
                 },
             )
-            // .with_remaining_accounts(self.user.to_account_infos())
             .with_signer(signer_seeds),
             amount,
         )?;

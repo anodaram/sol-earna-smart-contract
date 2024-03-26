@@ -26,6 +26,7 @@ pub struct InitializeExtraAccountMetaList<'info> {
     pub extra_account_meta_list: AccountInfo<'info>,
     pub mint: InterfaceAccount<'info, Mint>,
     pub token_program: Interface<'info, TokenInterface>,
+    pub token_program_org: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 
@@ -46,20 +47,8 @@ pub struct InitializeExtraAccountMetaList<'info> {
     pub treasury: Account<'info, Treasury>,
 
     pub wsol_mint: InterfaceAccount<'info, Mint>,
-    #[account(
-        mut,
-        token::mint = wsol_mint,
-        token::authority = payer,
-    )]
-    pub fee_wsol_token_account: InterfaceAccount<'info, TokenAccount>,
 
     pub wrapper_mint: InterfaceAccount<'info, Mint>,
-    #[account(
-        mut,
-        token::mint = wrapper_mint,
-        token::authority = payer,
-    )]
-    pub fee_wrapper_token_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(mut)]
     pub fee_recipient_liquidity: SystemAccount<'info>,
@@ -85,8 +74,6 @@ pub struct InitializeExtraAccountMetaList<'info> {
         token::authority = fee_recipient_holders,
     )]
     pub fee_holders_wsol_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
-
-    pub token_program_org: Interface<'info, TokenInterface>,
 }
 
 // Order of accounts matters for this struct.
@@ -115,26 +102,42 @@ pub struct TransferHook<'info> {
     pub extra_account_meta_list: UncheckedAccount<'info>, // 4
 
     pub token_program: Interface<'info, TokenInterface>, // 5
-    pub associated_token_program: Program<'info, AssociatedToken>, // 6
+    pub token_program_org: Interface<'info, TokenInterface>, // 6
+    pub associated_token_program: Program<'info, AssociatedToken>, // 7
     // pub system_program: Program<'info, System>,
 
+    #[account(
+        mut,
+        seeds = [DELEGATE_TAG, mint.key().as_ref()],
+        bump
+    )]
+    pub delegate: SystemAccount<'info>, // 8
+
     #[account(mut)]
-    pub fee_config: Box<Account<'info, FeeConfig>>, // 7
+    pub fee_config: Box<Account<'info, FeeConfig>>, // 9
 
     #[account(
         mut,
         seeds = [TREASURY_TAG, treasury.treasury_mint.as_ref()],
         bump,
     )]
-    pub treasury: Box<Account<'info, Treasury>>, // 8
+    pub treasury: Box<Account<'info, Treasury>>, // 10
 
-    pub wsol_mint: Box<InterfaceAccount<'info, Mint>>, // 9
-    #[account(mut)]
-    pub fee_wsol_token_account: Box<InterfaceAccount<'info, TokenAccount>>, // 10
+    pub wsol_mint: InterfaceAccount<'info, Mint>, // 11
+    #[account(
+        mut,
+        token::mint = wsol_mint,
+        token::authority = delegate,
+    )]
+    pub fee_wsol_token_account: InterfaceAccount<'info, TokenAccount>, // 12
 
-    pub wrapper_mint: Box<InterfaceAccount<'info, Mint>>, // 11
-    #[account(mut)]
-    pub fee_wrapper_token_account: Box<InterfaceAccount<'info, TokenAccount>>, // 12
+    pub wrapper_mint: Box<InterfaceAccount<'info, Mint>>, // 13
+    #[account(
+        mut,
+        token::mint = wrapper_mint,
+        token::authority = delegate,
+    )]
+    pub fee_wrapper_token_account: InterfaceAccount<'info, TokenAccount>, // 14
 
     #[account(mut)]
     pub fee_recipient_liquidity: SystemAccount<'info>,
@@ -144,12 +147,10 @@ pub struct TransferHook<'info> {
     pub fee_recipient_marketing: SystemAccount<'info>,
     #[account(mut)]
     pub fee_marketing_wsol_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(mut)]
-    pub fee_recipient_holders: SystemAccount<'info>,
-    #[account(mut)]
-    pub fee_holders_wsol_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
-
-    pub token_program_org: Interface<'info, TokenInterface>,
+    // #[account(mut)]
+    // pub fee_recipient_holders: SystemAccount<'info>,
+    // #[account(mut)]
+    // pub fee_holders_wsol_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 }
 
 
