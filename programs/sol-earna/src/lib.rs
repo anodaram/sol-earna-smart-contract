@@ -71,45 +71,17 @@ pub mod sol_earna {
                 true,
             )?, // 10
             ExtraAccountMeta::new_with_pubkey(&_a.wsol_mint.key(), false, true)?,  // 11
-            ExtraAccountMeta::new_external_pda_with_seeds( // 12. fee_wsol_token_account
+            ExtraAccountMeta::new_with_pubkey(&_a.wrapper_mint.key(), false, true)?, // 12
+            ExtraAccountMeta::new_external_pda_with_seeds( // 13. fee_wrapper_token_account
                 7, // associated token program index
                 &[
                     Seed::AccountKey { index: 8 }, // owner index
                     Seed::AccountKey { index: 6 }, // token program index
-                    Seed::AccountKey { index: 11 }, // wsol mint index
+                    Seed::AccountKey { index: 12 }, // wrapper mint index
                 ],
                 false, // is_signer
                 true,  // is_writable
             )?,
-            ExtraAccountMeta::new_with_pubkey(&_a.wrapper_mint.key(), false, true)?, // 13
-            ExtraAccountMeta::new_external_pda_with_seeds( // 14. fee_wrapper_token_account
-                7, // associated token program index
-                &[
-                    Seed::AccountKey { index: 8 }, // owner index
-                    Seed::AccountKey { index: 6 }, // token program index
-                    Seed::AccountKey { index: 13 }, // wrapper mint index
-                ],
-                false, // is_signer
-                true,  // is_writable
-            )?,
-            ExtraAccountMeta::new_with_pubkey(&_a.fee_recipient_liquidity.key(), false, true)?,
-            ExtraAccountMeta::new_with_pubkey(
-                &_a.fee_liquidity_wsol_token_account.key(),
-                false,
-                true,
-            )?,
-            ExtraAccountMeta::new_with_pubkey(&_a.fee_recipient_marketing.key(), false, true)?,
-            ExtraAccountMeta::new_with_pubkey(
-                &_a.fee_marketing_wsol_token_account.key(),
-                false,
-                true,
-            )?,
-            // ExtraAccountMeta::new_with_pubkey(&_a.fee_recipient_holders.key(), false, true)?,
-            // ExtraAccountMeta::new_with_pubkey(
-            //     &_a.fee_holders_wsol_token_account.key(),
-            //     false,
-            //     true,
-            // )?,
         ];
 
         // calculate account size
@@ -145,6 +117,7 @@ pub mod sol_earna {
             &account_metas,
         )?;
 
+        ctx.accounts.fee_config.wsol_mint_address = ctx.accounts.wsol_mint.key();
         ctx.accounts.fee_config.wrapper_mint_address = ctx.accounts.wrapper_mint.key();
         ctx.accounts.fee_config.fee_recipient_liquidity =
             ctx.accounts.fee_recipient_liquidity.key();
@@ -159,10 +132,6 @@ pub mod sol_earna {
     }
 
     pub fn transfer_hook(ctx: Context<TransferHook>, amount: u64) -> Result<()> {
-        msg!(
-            "fee_wsol_token_account {:?}",
-            ctx.accounts.fee_wsol_token_account.to_account_info().key()
-        );
         let signer_seeds: &[&[&[u8]]] = &[
             &[
                 TREASURY_TAG,
@@ -203,6 +172,10 @@ pub mod sol_earna {
         // Step 6: transfer wsol_amount_holders to fee_holders_wsol_token_account
 
         Ok(())
+    }
+
+    pub fn swap_fee_on_exchange(ctx: Context<SwapFeeOnExchange>, amount: u64) -> Result<()> {
+        ctx.accounts.swap_fee_on_exchange(amount)
     }
 
     // fallback instruction handler as workaround to anchor instruction discriminator check

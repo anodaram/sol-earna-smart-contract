@@ -9,6 +9,13 @@ use constants::*;
 use errors::*;
 use events::*;
 
+
+impl<'info> SwapFeeOnExchange<'info> {
+    pub fn swap_fee_on_exchange(&mut self, amount: u64) -> Result<()> {
+        Ok(())
+    }
+}
+
 impl<'info> CreateTreasury<'info> {
     pub fn create_treasury(&mut self) -> Result<()> {
         let treasury = &mut self.treasury;

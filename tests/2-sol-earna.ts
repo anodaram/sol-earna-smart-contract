@@ -360,11 +360,8 @@ describe("sol-earna", () => {
         wsolMint: NATIVE_MINT, // wsol_mint
         wrapperMint, // wrapper_mint
         feeRecipientLiquidity: feeRecipientLiquidity.publicKey, // fee_recipient_liquidity
-        feeLiquidityWsolTokenAccount, // fee_liquidity_wsol_token_account
         feeRecipientMarketing: feeRecipientMarketing.publicKey, // fee_recipient_marketing
-        feeMarketingWsolTokenAccount, // fee_marketing_wsol_token_account
         feeRecipientHolders: feeRecipientHolders.publicKey, // fee_recipient_holders
-        feeHoldersWsolTokenAccount, // fee_holders_wsol_token_account
       })
       .instruction();
 
